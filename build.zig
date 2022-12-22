@@ -11,28 +11,28 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const exe = b.addExecutable("ubu", "src/main.zig");
-    exe.addCSourceFile("src/ubu/c/macos_app.m", &[_][]const u8{"-fno-objc-arc"});
-    exe.linkFramework("Foundation");
-    exe.linkFramework("Cocoa");
-    exe.linkFramework("OpenGL");
-    exe.linkFramework("CoreVideo");
-    // exe.linkSystemLibrary("glfw3");
-    exe.linkLibC();
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
-    exe.install();
+    //const exe = b.addExecutable("ubu", "src/main.zig");
+    //exe.addCSourceFile("src/ubu/c/macos_app.m", &[_][]const u8{"-fno-objc-arc"});
+    //exe.linkFramework("Foundation");
+    //exe.linkFramework("Cocoa");
+    //exe.linkFramework("OpenGL");
+    //exe.linkFramework("CoreVideo");
+    //// exe.linkSystemLibrary("glfw3");
+    //exe.linkLibC();
+    //exe.setTarget(target);
+    //exe.setBuildMode(mode);
+    //exe.install();
 
-    const run_cmd = exe.run();
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
+    //const run_cmd = exe.run();
+    //run_cmd.step.dependOn(b.getInstallStep());
+    //if (b.args) |args| {
+    //    run_cmd.addArgs(args);
+    //}
 
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
+    // const run_step = b.step("run", "Run the app");
+    // run_step.dependOn(&run_cmd.step);
 
-    const exe_tests = b.addTest("src/main.zig");
+    const exe_tests = b.addTest("src/ubu.zig");
     exe_tests.setTarget(target);
     exe_tests.setBuildMode(mode);
 
