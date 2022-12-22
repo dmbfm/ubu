@@ -1,4 +1,4 @@
-fn StaticStack(comptime T: type, comptime capacity: comptime_int) type {
+pub fn StaticStack(comptime T: type, comptime capacity: comptime_int) type {
     const Error = error{StackFull};
 
     return struct {

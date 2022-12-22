@@ -1,7 +1,7 @@
 const std = @import("std");
 const ubu = @import("../ubu.zig");
 
-fn StaticQueue(comptime T: type, comptime capacity: comptime_int) type {
+pub fn StaticQueue(comptime T: type, comptime capacity: comptime_int) type {
     return struct {
         nodes: NodePool = NodePool{},
         first: ?*Node = null,
