@@ -6,6 +6,7 @@ pub fn StaticQueue(comptime T: type, comptime capacity: comptime_int) type {
         nodes: NodePool = NodePool{},
         first: ?*Node = null,
         last: ?*Node = null,
+        count: usize = 0,
 
         const Self = @This();
         const NodePool = ubu.IndexedPool(Node, capacity);
@@ -42,6 +43,8 @@ pub fn StaticQueue(comptime T: type, comptime capacity: comptime_int) type {
                 old_first.?.prev = node;
                 self.first = node;
             }
+
+            self.count += 1;
         }
 
         pub fn dequeue(self: *Self) ?T {
@@ -57,6 +60,7 @@ pub fn StaticQueue(comptime T: type, comptime capacity: comptime_int) type {
                 }
 
                 self.nodes.free(last_node.handle.?);
+                self.count -= 1;
 
                 return result;
             }

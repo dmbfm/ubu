@@ -7,6 +7,7 @@ pub fn IndexedPool(comptime T: type, comptime capacity: usize) type {
         free_handles: [capacity]usize = blk: {
             comptime var result: [capacity]usize = undefined;
             comptime var i: usize = 0;
+            @setEvalBranchQuota(capacity);
             inline while (i < capacity) : (i += 1) {
                 result[i] = i + 1;
             }
