@@ -6,6 +6,7 @@ pub usingnamespace @import("ubu/indexed_pool.zig");
 pub usingnamespace @import("ubu/range.zig");
 pub usingnamespace @import("ubu/static_queue.zig");
 pub usingnamespace @import("ubu/static_stack.zig");
+pub const constraint = @import("ubu/constraint.zig");
 
 test {
     _ = @import("ubu/indexed_pool.zig");
