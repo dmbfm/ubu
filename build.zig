@@ -11,6 +11,10 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
+    const lib = b.addStaticLibrary("ubu", "src/ubu.zig");
+    lib.setBuildMode(mode);
+    lib.install();
+
     //const exe = b.addExecutable("ubu", "src/main.zig");
     //exe.addCSourceFile("src/ubu/c/macos_app.m", &[_][]const u8{"-fno-objc-arc"});
     //exe.linkFramework("Foundation");
