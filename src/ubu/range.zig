@@ -3,11 +3,11 @@
 ///
 /// Usage example:
 ///
-///     for (range(10)) |i| {
+///     for (srange(10)) |i| {
 ///         std.log.info("{}", .{ i });
 ///     }
 ///
-pub fn range(comptime limit: comptime_int) []const usize {
+pub fn srange(comptime limit: comptime_int) []const usize {
     comptime {
         var nums: [limit]usize = undefined;
         var i: usize = 0;
@@ -17,4 +17,14 @@ pub fn range(comptime limit: comptime_int) []const usize {
 
         return &nums;
     }
+}
+
+/// Returns a slice of a given len of a 0-sized arrays of `u0`s.j
+///
+/// Usage:
+///     for (range(10)) |_, i| {
+///         std.log.info("{}", .{i});
+///     }
+pub fn range(len: usize) []u0 {
+    return @as([*]u0, undefined)[0..len];
 }
