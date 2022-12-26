@@ -1,58 +1,92 @@
 const std = @import("std");
-const color = @import("color.zig");
+pub const color = @import("image/color.zig");
+pub const ppm = @import("image/ppm.zig");
 
-const Rgb = struct {
-    data: []color.Rgb,
-    width: usize,
-    height: usize,
-    allocator: ?std.mem.Allocator,
+pub fn Image(comptime ColorType: type) type {
+    return struct {
+        data: []ColorType,
+        width: usize,
+        height: usize,
+        allocator: ?std.mem.Allocator = null,
 
-    const Error = error{DimensionMismatch};
+        const Error = error{DimensionMismatch};
+        const Self = @This();
 
-    pub fn init(data: []color.Rgb, width: usize, height: usize) !Rgb {
-        if (data.len != width * height) {
-            return Error.DimensionMismatch;
+        pub fn init(data: []ColorType, width: usize, height: usize) !Self {
+            if (data.len != width * height) {
+                return Error.DimensionMismatch;
+            }
+
+            return Self{
+                .data = data,
+                .width = width,
+                .height = height,
+            };
         }
 
-        return .{
-            .data = data,
-            .width = width,
-            .height = height,
-        };
-    }
-
-    pub fn init_alloc(allocator: std.mem.Allocator, width: usize, height: usize) !Rgb {
-        return Rgb{
-            .data = try allocator.alloc(Rgb, width * height),
-            .width = width,
-            .height = height,
-            .allocator = allocator,
-        };
-    }
-
-    pub fn deinit(self: *Rgb) void {
-        if (self.allocator) |allocator| {
-            allocator.free(self.data);
-        }
-    }
-
-    pub fn get(self: *Rgb, x: usize, y: usize) ?Rgb {
-        if (x < 0 or x >= self.width or y < 0 or y >= self.height) {
-            return null;
+        pub fn init_alloc(allocator: std.mem.Allocator, width: usize, height: usize) !Self {
+            return Self{
+                .data = try allocator.alloc(Rgb, width * height),
+                .width = width,
+                .height = height,
+                .allocator = allocator,
+            };
         }
 
-        return self.data[y * self.width + x];
-    }
-
-    pub fn set(self: *Rgb, x: usize, y: usize, value: Rgb) void {
-        if (x < 0 or x >= self.width or y < 0 or y >= self.height) {
-            return;
+        pub fn deinit(self: *Self) void {
+            if (self.allocator) |allocator| {
+                allocator.free(self.data);
+            }
         }
 
-        self.data[y * self.width + x] = value;
-    }
+        pub fn get(self: *Self, x: usize, y: usize) ?ColorType {
+            if (x < 0 or x >= self.width or y < 0 or y >= self.height) {
+                return null;
+            }
 
-    pub fn bytes(self: *Rgb) []u8 {
-        return std.mem.sliceAsBytes(self.data);
-    }
+            return self.data[y * self.width + x];
+        }
+
+        pub fn set(self: *Rgb, x: usize, y: usize, value: ColorType) void {
+            if (x < 0 or x >= self.width or y < 0 or y >= self.height) {
+                return;
+            }
+
+            self.data[y * self.width + x] = value;
+        }
+
+        pub fn bytes(self: *Self) []u8 {
+            return std.mem.sliceAsBytes(self.data);
+        }
+    };
+}
+
+pub const Rgb = Image(color.Rgb);
+pub const Rgba = Image(color.Rgba);
+pub const Gray = Image(u8);
+
+pub const DecodeResult = union(enum) {
+    rgb: Rgb,
+    rgba: Rgba,
+    gray: Gray,
 };
+
+const expect = std.testing.expect;
+
+test {
+    _ = @import("image/ppm.zig");
+}
+
+test "Rgb" {
+    var data: [4]color.Rgb = [_]color.Rgb{.{ .r = 255, .g = 255, .b = 255 }} ** 4;
+    var image = try Rgb.init(&data, 2, 2);
+    var bytes = image.bytes();
+    for (bytes) |*b| {
+        b.* = 0;
+    }
+    for (image.data) |*c| {
+        try expect(c.r == 0);
+        try expect(c.g == 0);
+        try expect(c.b == 0);
+    }
+}

@@ -7,8 +7,8 @@ pub usingnamespace @import("ubu/range.zig");
 pub usingnamespace @import("ubu/static_queue.zig");
 pub usingnamespace @import("ubu/static_stack.zig");
 pub const constraint = @import("ubu/constraint.zig");
-pub const color = @import("color.zig");
-pub const image = @import("image.zig");
+pub const image = @import("ubu/image.zig");
+pub const io = @import("ubu/io.zig");
 
 test {
     _ = @import("ubu/indexed_pool.zig");
@@ -16,4 +16,6 @@ test {
     _ = @import("ubu/allocators.zig");
     _ = @import("ubu/static_queue.zig");
     _ = @import("ubu/static_stack.zig");
+    _ = @import("ubu/image.zig");
+    _ = @import("ubu/io.zig");
 }
