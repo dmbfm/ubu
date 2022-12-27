@@ -54,31 +54,31 @@ const Context = struct {
     }
 };
 
-pub const BufferReader = struct {
+pub const BufferStream = struct {
     ctx: Context,
 
-    pub fn init(buffer: []const u8) BufferReader {
+    pub fn init(buffer: []const u8) BufferStream {
         return .{ .ctx = .{ .buffer = buffer } };
     }
 
-    pub fn seek_reader(self: *BufferReader) io.SeekReader(*Context, Context.Error, Context.read, Context.peek, Context.seek) {
+    pub fn seek_reader(self: *BufferStream) io.SeekReader(*Context, Context.Error, Context.read, Context.peek, Context.seek) {
         return .{ .context = &self.ctx };
     }
 
-    pub fn peek_reader(self: *BufferReader) io.PeekReader(*Context, Context.Error, Context.read, Context.peek) {
+    pub fn peek_reader(self: *BufferStream) io.PeekReader(*Context, Context.Error, Context.read, Context.peek) {
         return .{ .context = &self.ctx };
     }
 
-    pub fn reader(self: *BufferReader) io.Reader(*Context, Context.Error, Context.read) {
+    pub fn reader(self: *BufferStream) io.Reader(*Context, Context.Error, Context.read) {
         return .{ .context = &self.ctx };
     }
 };
 
 const t = std.testing;
 
-test "BufferReader" {
+test "BufferStream" {
     var buffer: []const u8 = "aaaaa bb cc dd 2222 uu kk";
-    var br = BufferReader.init(buffer);
+    var br = BufferStream.init(buffer);
     var sr = br.seek_reader();
     var ch = try sr.read_byte();
     try t.expect(ch == 'a');

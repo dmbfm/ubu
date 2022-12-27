@@ -1,5 +1,6 @@
 const std = @import("std");
 const image = @import("../image.zig");
+const io = @import("../io.zig");
 
 const DecodeOptions = struct {
     force_rgb: bool = false,
@@ -32,12 +33,12 @@ pub fn parse_header(reader: anytype) !Header {
     var state: u8 = 0;
 
     while (true) {
-        var ch = try reader.readByte();
+        var ch = try reader.read_byte();
 
         switch (ch) {
             '#' => {
                 while (true) {
-                    var _ch = try reader.readByte();
+                    var _ch = try reader.read_byte();
                     if (_ch == '\n') {
                         break;
                     }
@@ -50,7 +51,7 @@ pub fn parse_header(reader: anytype) !Header {
                 var c: usize = 1;
                 buf[0] = ch;
                 while (true) {
-                    var ch2 = try reader.readByte();
+                    var ch2 = try reader.read_byte();
                     if (std.ascii.isDigit(ch2)) {
                         buf[c] = ch2;
                         c += 1;
@@ -106,8 +107,9 @@ test "parse_header" {
             \\1 1 0   1 1 1   0 0 0
         ;
 
-        var s = std.io.fixedBufferStream(p3);
-        var header = try parse_header(s.reader());
+        var r = io.BufferStream.init(p3);
+        //var s = std.io.fixedBufferStream(p3);
+        var header = try parse_header(r.reader());
         try expect(std.mem.eql(u8, &header.magic, "P3"));
         try expect(header.width == 3);
         try expect(header.height == 2);
@@ -116,7 +118,7 @@ test "parse_header" {
 
     {
         const p6 = [_]u8{ 80, 54, 10, 53, 32, 53, 10, 50, 53, 53, 10, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 };
-        var s = std.io.fixedBufferStream(&p6);
+        var s = io.BufferStream.init(&p6);
         var header = try parse_header(s.reader());
         try expect(std.mem.eql(u8, &header.magic, "P6"));
         try expect(header.width == 5);
