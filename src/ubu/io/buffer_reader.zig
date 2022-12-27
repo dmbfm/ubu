@@ -16,6 +16,7 @@ const Context = struct {
         }
 
         @memcpy(buf.ptr, ctx.buffer[ctx.cur..].ptr, amount);
+        ctx.cur += amount;
 
         return amount;
     }
