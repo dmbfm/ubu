@@ -45,4 +45,5 @@ pub fn build(b: *std.build.Builder) void {
 
     add_example(b, opts, "example-gradient-test", "examples/image/gradient_test.zig");
     add_example(b, opts, "example-image-invert", "examples/image/image_invert.zig");
+    add_example(b, opts, "example-cat", "examples/cat.zig");
 }

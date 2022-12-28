@@ -15,10 +15,8 @@ pub fn main() !void {
     }
 
     var filename: []const u8 = args[1];
-    var f = try ubu.fs.open_file(filename);
-    defer f.close();
-
-    var buffered = ubu.io.new_buffered_stream_container_from_file(f, 512);
+    var buffered = try ubu.fs.open_file_buffered(filename);
+    defer buffered.close();
 
     var result = try image.ppm.decode(allocator, buffered.stream());
     var img = result.rgb;

@@ -2,6 +2,7 @@ const std = @import("std");
 const image = @import("../image.zig");
 const io = @import("../io.zig");
 const range = @import("../range.zig").range;
+const ubu = @import("../../ubu.zig");
 
 const Error = error{
     InvalidHeader,
@@ -143,6 +144,11 @@ fn decode_p6(allocator: std.mem.Allocator, header: Header, reader: anytype) !ima
     _ = try reader.read(bytes);
 
     return .{ .rgb = img };
+}
+
+pub fn decode_buffer(allocator: std.mem.Allocator, data: []const u8) !image.DecodeResult {
+    var r = ubu.io.new_buffer(data);
+    return decode(allocator, r.stream());
 }
 
 pub fn decode(allocator: std.mem.Allocator, reader: anytype) !image.DecodeResult {

@@ -10,6 +10,7 @@ pub const constraint = @import("ubu/constraint.zig");
 pub const image = @import("ubu/image.zig");
 pub const io = @import("ubu/io.zig");
 pub const fs = @import("ubu/fs.zig");
+pub usingnamespace @import("ubu/file.zig");
 
 test {
     _ = @import("ubu/indexed_pool.zig");
@@ -19,4 +20,5 @@ test {
     _ = @import("ubu/static_stack.zig");
     _ = @import("ubu/image.zig");
     _ = @import("ubu/io.zig");
+    _ = @import("ubu/file.zig");
 }

@@ -12,11 +12,15 @@ pub fn create_file(path: []const u8) !File {
 
 pub fn write_file(path: []const u8, data: []const u8) !void {
     var f = try create_file(path);
+    defer f.close();
+
     try f.writeAll(data);
 }
 
 pub fn read_file(allocator: std.mem.Allocator, path: []const u8) ![]u8 {
     var f: File = try open_file(path);
+    defer f.close();
+
     return f.readToEndAlloc(allocator, 1024 * 1024 * 1024);
 }
 
