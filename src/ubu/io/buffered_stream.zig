@@ -68,7 +68,12 @@ pub fn BufferedStream(comptime ReaderStream: type, comptime buffer_len: comptime
         pub fn peek(self: Self, buf: []u8) Error!usize {
             var ctx = self.ctx;
 
+            if (ctx.len == ctx.cur) {
+                try self.refill();
+            }
+
             var bytes_ahead = ctx.len - ctx.cur;
+
             if (buf.len <= bytes_ahead) {
                 var amount = std.math.min(bytes_ahead, buf.len);
                 @memcpy(buf.ptr, ctx.buffer[ctx.cur..].ptr, amount);
@@ -88,7 +93,8 @@ pub fn BufferedStream(comptime ReaderStream: type, comptime buffer_len: comptime
 
         pub fn seek(self: Self, relative_to: io.SeekRelativeTo, amount: i64) Error!usize {
             var ctx = self.ctx;
-            var result = try ctx.reader.seek(relative_to, amount);
+            var offset = @intCast(i64, ctx.len - ctx.cur);
+            var result = try ctx.stream.seek(relative_to, amount - offset);
             try self.refill();
             return result;
         }

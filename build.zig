@@ -1,47 +1,48 @@
 const std = @import("std");
 
-pub fn add_example() void {}
+const BuildOptions = struct {
+    target: std.zig.CrossTarget,
+    mode: std.builtin.Mode,
+};
+
+const ubu_pkg = std.build.Pkg{
+    .name = "ubu",
+    .source = .{ .path = "src/ubu.zig" },
+};
+
+pub fn add_example(b: *std.build.Builder, opts: BuildOptions, comptime name: []const u8, comptime src: []const u8) void {
+    const exe = b.addExecutable(name, src);
+    exe.setTarget(opts.target);
+    exe.setBuildMode(opts.mode);
+    exe.addPackage(ubu_pkg);
+    exe.install();
+
+    const run_cmd = exe.run();
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
+    }
+    run_cmd.step.dependOn(b.getInstallStep());
+    const run_step = b.step(name, "Run example " ++ name);
+    run_step.dependOn(&run_cmd.step);
+}
 
 pub fn build(b: *std.build.Builder) void {
-    // Standard target options allows the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
-    const target = b.standardTargetOptions(.{});
-
-    // Standard release options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
-    const mode = b.standardReleaseOptions();
+    var opts = BuildOptions{
+        .target = b.standardTargetOptions(.{}),
+        .mode = b.standardReleaseOptions(),
+    };
 
     const lib = b.addStaticLibrary("ubu", "src/ubu.zig");
-    lib.setBuildMode(mode);
+    lib.setBuildMode(opts.mode);
     lib.install();
 
-    //const exe = b.addExecutable("ubu", "src/main.zig");
-    //exe.addCSourceFile("src/ubu/c/macos_app.m", &[_][]const u8{"-fno-objc-arc"});
-    //exe.linkFramework("Foundation");
-    //exe.linkFramework("Cocoa");
-    //exe.linkFramework("OpenGL");
-    //exe.linkFramework("CoreVideo");
-    //// exe.linkSystemLibrary("glfw3");
-    //exe.linkLibC();
-    //exe.setTarget(target);
-    //exe.setBuildMode(mode);
-    //exe.install();
-
-    //const run_cmd = exe.run();
-    //run_cmd.step.dependOn(b.getInstallStep());
-    //if (b.args) |args| {
-    //    run_cmd.addArgs(args);
-    //}
-
-    // const run_step = b.step("run", "Run the app");
-    // run_step.dependOn(&run_cmd.step);
-
     const exe_tests = b.addTest("src/ubu.zig");
-    exe_tests.setTarget(target);
-    exe_tests.setBuildMode(mode);
+    exe_tests.setTarget(opts.target);
+    exe_tests.setBuildMode(opts.mode);
 
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&exe_tests.step);
+
+    add_example(b, opts, "example-gradient-test", "examples/image/gradient_test.zig");
+    add_example(b, opts, "example-image-invert", "examples/image/image_invert.zig");
 }

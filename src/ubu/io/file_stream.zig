@@ -47,6 +47,10 @@ pub const FileStream = struct {
     pub usingnamespace io.WriterMixin(Self, Error);
 };
 
+pub fn new_file_stream(f: std.fs.File) FileStream {
+    return FileStream.init(f);
+}
+
 test "FileStream" {
     var f = try std.fs.cwd().openFile("test_data/file.txt", .{});
     var stream = FileStream.init(f);

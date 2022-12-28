@@ -3,20 +3,10 @@ const image = @import("../image.zig");
 const io = @import("../io.zig");
 const range = @import("../range.zig").range;
 
-const DecodeOptions = struct {
-    force_rgb: bool = false,
-};
-
 const Error = error{
     InvalidHeader,
     DecodeError,
     StringBufferOverflow,
-};
-
-const DecoderState = enum {
-    Idle,
-    ParsingDimensions,
-    ParsingData,
 };
 
 const Header = struct {
@@ -36,6 +26,7 @@ pub fn parse_header(reader: anytype) !Header {
     while (true) {
         var ch = if (try reader.read_byte()) |val| val else break;
 
+        std.log.info("ch = {}", .{ch});
         switch (ch) {
             '#' => {
                 while (true) {
