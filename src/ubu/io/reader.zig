@@ -51,6 +51,10 @@ pub fn ReaderMixin(
         pub fn skip_byte(self: Self) Error!void {
             return self.skip(1);
         }
+
+        pub fn std_reader(self: Self) std.io.Reader(Self, Error, Self.read) {
+            return .{ .context = self };
+        }
     };
 }
 

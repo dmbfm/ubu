@@ -15,14 +15,6 @@ pub fn WriterMixin(comptime T: type, comptime ErrorType: type) type {
             _ = try self.write(data);
         }
 
-        pub fn writeAll(self: Self, data: []const u8) ErrorType!void {
-            return self.write_all(data);
-        }
-
-        pub fn writeByteNTimes(self: Self, byte: u8, amount: usize) ErrorType!void {
-            return write_byte_n_times(self, byte, amount);
-        }
-
         pub fn write_byte_n_times(self: Self, byte: u8, amount: usize) ErrorType!void {
             var buf: [256]u8 = undefined;
             @memset(&buf, byte, 256);
@@ -35,7 +27,11 @@ pub fn WriterMixin(comptime T: type, comptime ErrorType: type) type {
         }
 
         pub fn print(self: Self, comptime format: []const u8, args: anytype) ErrorType!void {
-            return std.fmt.format(self, format, args);
+            return std.fmt.format(self.std_writer(), format, args);
+        }
+
+        pub fn std_writer(self: Self) std.io.Writer(Self, ErrorType, Self.write) {
+            return .{ .context = self };
         }
     };
 }
