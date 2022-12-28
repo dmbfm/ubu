@@ -9,6 +9,7 @@ pub usingnamespace @import("ubu/static_stack.zig");
 pub const constraint = @import("ubu/constraint.zig");
 pub const image = @import("ubu/image.zig");
 pub const io = @import("ubu/io.zig");
+pub const fs = @import("ubu/fs.zig");
 
 test {
     _ = @import("ubu/indexed_pool.zig");

@@ -21,6 +21,10 @@ pub const FileStream = struct {
         return len;
     }
 
+    pub fn close(self: Self) void {
+        self.context.close();
+    }
+
     pub fn seek(self: Self, relative_to: io.SeekRelativeTo, amount: i64) Error!usize {
         switch (relative_to) {
             .Start => {

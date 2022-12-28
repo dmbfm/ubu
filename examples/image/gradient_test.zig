@@ -16,6 +16,6 @@ pub fn main() !void {
         }
     }
 
-    var f = try std.fs.cwd().createFile("gradient.ppm", .{});
+    var f = try ubu.fs.create_file("gradient.ppm");
     try image.ppm.encode(img, ubu.io.new_file_stream(f), false);
 }

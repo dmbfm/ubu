@@ -15,10 +15,11 @@ pub fn main() !void {
     }
 
     var filename: []const u8 = args[1];
-    var f = try std.fs.cwd().openFile(filename, .{});
+    var f = try ubu.fs.open_file(filename);
     defer f.close();
 
     var buffered = ubu.io.new_buffered_stream_container_from_file(f, 512);
+
     var result = try image.ppm.decode(allocator, buffered.stream());
     var img = result.rgb;
     defer img.deinit();
@@ -27,7 +28,7 @@ pub fn main() !void {
         value.* = 255 - value.*;
     }
 
-    var out_file = try std.fs.cwd().createFile("out.ppm", .{});
+    var out_file = try ubu.fs.create_file("out.ppm");
     defer out_file.close();
     try image.ppm.encode(img, ubu.io.new_file_stream(out_file), false);
 }

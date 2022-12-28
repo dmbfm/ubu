@@ -26,6 +26,15 @@ pub fn BufferedStreamContainer(comptime ReaderStream: type, comptime buffer_len:
         pub fn stream(self: *Self) BufferedStream(ReaderStream, buffer_len) {
             return .{ .ctx = &self.context };
         }
+
+        pub fn close(self: *Self) void {
+            if (std.meta.trait.hasFn("close")(ReaderStream)) {
+                const decl_type = @TypeOf(@field(ReaderStream, "close"));
+                if (decl_type == fn (ReaderStream) void or decl_type == fn (*ReaderStream) void) {
+                    self.context.stream.close();
+                }
+            }
+        }
     };
 }
 
