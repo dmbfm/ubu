@@ -192,6 +192,14 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
 
 pub const File = BufferedFile(1024 * 4);
 
+const stdout = std.io.getStdOut().writer();
+pub fn print(comptime format: []const u8, args: anytype) !void {
+    return stdout.print(format, args);
+}
+pub fn print_string(data: []const u8) !void {
+    return stdout.writeAll(data);
+}
+
 const t = std.testing;
 const eql = std.mem.eql;
 

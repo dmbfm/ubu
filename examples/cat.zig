@@ -1,6 +1,5 @@
 const std = @import("std");
 const ubu = @import("ubu");
-const stdout = std.io.getStdOut().writer();
 
 pub fn main() !void {
     const allocator = ubu.allocators.GlobalArena.allocator();
@@ -9,7 +8,7 @@ pub fn main() !void {
     var args = try std.process.argsAlloc(allocator);
     defer allocator.free(args);
     if (args.len < 2) {
-        try stdout.print("Usage: example-cat [file]\n", .{});
+        try ubu.print("Usage: example-cat [file]\n", .{});
         return;
     }
 
@@ -21,6 +20,6 @@ pub fn main() !void {
     while (true) {
         try f.fill_buffer();
         if (f.filled_slice.len == 0) break;
-        try stdout.writeAll(f.filled_slice);
+        try ubu.print_string(f.filled_slice);
     }
 }
