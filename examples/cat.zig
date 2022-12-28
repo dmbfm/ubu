@@ -3,9 +3,8 @@ const ubu = @import("ubu");
 const stdout = std.io.getStdOut().writer();
 
 pub fn main() !void {
-    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-    defer arena.deinit();
-    const allocator = arena.allocator();
+    const allocator = ubu.allocators.GlobalArena.allocator();
+    defer ubu.allocators.GlobalArena.deinit();
 
     var args = try std.process.argsAlloc(allocator);
     defer allocator.free(args);
