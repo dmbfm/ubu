@@ -9,8 +9,6 @@ const eql = std.mem.eql;
 const Tuple = ubu.Tuple;
 const Complex = ubu.complex.Complex;
 
-const Point = Tuple(.{ f32, f32 });
-
 pub fn parse_pair(comptime T: type, string: []const u8, sep: u8) !Tuple(.{ T, T }) {
     var i: usize = 0;
     while (i < string.len) {
