@@ -78,19 +78,93 @@ pub fn render(
     limit: usize,
 ) void {
     for (range(dim[1])) |_, row| {
-        for (range(dim[0])) |_, col| {
-            var point = get_point_for_pixel(.{ col, row }, dim, upper_left, lower_right);
-            var i: usize = 0;
-            var z = Complex(f64).init(0, 0);
-            while (i < std.math.min(limit, 255) and z.norm_sq() <= 4) {
-                z = z.mul(z).add(point);
-                i += 1;
-            }
+        render_row(image, row, dim, upper_left, lower_right, limit);
+    }
+}
 
-            image[row * dim[0] + col] = @intCast(u8, 255 - i);
+pub fn render_row(
+    image: []u8,
+    row: usize,
+    dim: Tuple(.{ usize, usize }),
+    upper_left: Complex(f64),
+    lower_right: Complex(f64),
+    limit: usize,
+) void {
+    for (range(dim[0])) |_, col| {
+        var point = get_point_for_pixel(.{ col, row }, dim, upper_left, lower_right);
+        var i: usize = 0;
+        var z = Complex(f64).init(0, 0);
+        while (i < std.math.min(limit, 255) and z.norm_sq() <= 4) {
+            z = z.mul(z).add(point);
+            i += 1;
+        }
+
+        image[row * dim[0] + col] = @intCast(u8, 255 - i);
+    }
+}
+
+pub fn render_thread_fn(ctx: *ThreadContext) void {
+    while (true) {
+        ctx.mutex.lock();
+        var row = ctx.current_row;
+        ctx.current_row += 1;
+        ctx.mutex.unlock();
+
+        if (row >= ctx.dim[1]) {
+            break;
+        }
+
+        render_row(ctx.image, row, ctx.dim, ctx.upper_left, ctx.lower_right, ctx.limit);
+    }
+}
+
+const ThreadContext = struct {
+    image: []u8,
+    dim: Tuple(.{ usize, usize }),
+    upper_left: Complex(f64),
+    lower_right: Complex(f64),
+    limit: usize,
+    current_row: usize,
+    mutex: std.Thread.Mutex = .{},
+};
+
+pub fn render_threaded(
+    comptime num_threads: comptime_int,
+    image: []u8,
+    dim: Tuple(.{ usize, usize }),
+    upper_left: Complex(f64),
+    lower_right: Complex(f64),
+    limit: usize,
+) !void {
+    var threads: [num_threads]std.Thread = undefined;
+
+    var thread_context = ThreadContext{
+        .image = image,
+        .dim = dim,
+        .upper_left = upper_left,
+        .lower_right = lower_right,
+        .limit = limit,
+        .current_row = 0,
+    };
+
+    {
+        var i: usize = 0;
+        while (i < num_threads) {
+            threads[i] = try std.Thread.spawn(.{}, render_thread_fn, .{&thread_context});
+            i += 1;
+        }
+    }
+
+    {
+        var i: usize = 0;
+        while (i < num_threads) {
+            threads[i].join();
+            i += 1;
         }
     }
 }
+
+const single_thread = false;
 
 pub fn main() !void {
     var allocator = ubu.allocators.GlobalArena.allocator();
@@ -101,7 +175,7 @@ pub fn main() !void {
 
     if (args.len != 5) {
         try ubu.eprintln("Usage: example-mandelbrot FILE SIZE UPPER_LEFT LOWER_LEFT", .{});
-        std.os.exit(1);
+        return;
     }
 
     var filename = args[1];
@@ -117,6 +191,11 @@ pub fn main() !void {
     var f = try ubu.File.create(filename);
     defer f.close();
 
-    render(image.bytes(), dim, upper_left, lower_right, 255);
+    if (single_thread) {
+        render(image.bytes(), dim, upper_left, lower_right, 255);
+    } else {
+        try render_threaded(12, image.bytes(), dim, upper_left, lower_right, 255);
+    }
+
     try ppm.encode(image, &f, false);
 }
