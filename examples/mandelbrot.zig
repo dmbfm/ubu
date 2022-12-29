@@ -1,3 +1,15 @@
+///
+/// mandelbrot.zig
+///
+/// Small application that renders a mandelbrot set. This is a port from the
+/// mandelbrot example in the book "Programming Rust", by Blandy, Orendorff &
+/// Tindall. It's pretty much the same program, but here we only output .ppm
+/// files.
+///
+/// Usage: example-mandelbrot FILE SIZE UPPER_LEFT LOWER_LEFT
+///
+/// E.g.: example-mandelbrot out.ppm 4000x3000 -1.20,0.35 -1,0.20
+///
 const std = @import("std");
 const ubu = @import("ubu");
 const ppm = ubu.image.ppm;
@@ -16,6 +28,10 @@ pub fn parse_pair(comptime T: type, string: []const u8, sep: u8) !Tuple(.{ T, T 
             break;
         }
         i += 1;
+    }
+
+    if (i == string.len) {
+        return error.PairParseError;
     }
 
     const type_info = @typeInfo(T);
@@ -38,7 +54,7 @@ pub fn parse_pair(comptime T: type, string: []const u8, sep: u8) !Tuple(.{ T, T 
 }
 
 test "parse_pair" {
-    try expectError(error.InvalidCharacter, parse_pair(u32, "", ','));
+    try expectError(error.PairParseError, parse_pair(u32, "", ','));
     try expectError(error.InvalidCharacter, parse_pair(u32, "1,", ','));
     try expectEqual(@as(Tuple(.{ u32, u32 }), .{ 1, 1 }), try parse_pair(u32, "1,1", ','));
     try expectEqual(@as(Tuple(.{ u32, u32 }), .{ 100, 200 }), try parse_pair(u32, "100x200", 'x'));
@@ -92,13 +108,17 @@ pub fn render_row(
         var point = get_point_for_pixel(.{ col, row }, dim, upper_left, lower_right);
         var i: usize = 0;
         var z = Complex(f64).init(0, 0);
-        while (i < std.math.min(limit, 255) and z.norm_sq() <= 4) {
+        while (i < limit and z.norm_sq() <= 4) {
             z = z.mul(z).add(point);
             i += 1;
         }
 
-        image[row * dim[0] + col] = @intCast(u8, 255 - i);
+        image[row * dim[0] + col] = get_color_for_value(i, limit);
     }
+}
+
+pub fn get_color_for_value(value: usize, limit: usize) u8 {
+    return 255 - @floatToInt(u8, 255.0 * @intToFloat(f64, value) / @intToFloat(f64, limit));
 }
 
 pub fn render_thread_fn(ctx: *ThreadContext) void {
@@ -163,6 +183,17 @@ pub fn render_threaded(
 }
 
 const single_thread = false;
+const max_iterations = 255;
+
+pub fn print_usage() !void {
+    return ubu.eprintln("Usage: example-mandelbrot FILE SIZE UPPER_LEFT LOWER_LEFT", .{});
+}
+
+pub fn print_usage_msg_and_exit(msg: []const u8) noreturn {
+    ubu.eprintln("{s}", .{msg}) catch unreachable;
+    print_usage() catch unreachable;
+    std.os.exit(0);
+}
 
 pub fn main() !void {
     var allocator = ubu.allocators.GlobalArena.allocator();
@@ -172,28 +203,28 @@ pub fn main() !void {
     defer allocator.free(args);
 
     if (args.len != 5) {
-        try ubu.eprintln("Usage: example-mandelbrot FILE SIZE UPPER_LEFT LOWER_LEFT", .{});
+        try print_usage();
         return;
     }
 
     var filename = args[1];
-    var dim = try parse_pair(usize, args[2], 'x');
-    var upper_left_nums = try parse_pair(f64, args[3], ',');
-    var lower_right_nums = try parse_pair(f64, args[4], ',');
+    var dim = parse_pair(usize, args[2], 'x') catch print_usage_msg_and_exit("failed to parse image dimensions!\n");
+    var upper_left_nums = parse_pair(f64, args[3], ',') catch print_usage_msg_and_exit("failed to parse upper left coords!\n");
+    var lower_right_nums = parse_pair(f64, args[4], ',') catch print_usage_msg_and_exit("failed to parse lower right coords!");
     var upper_left = Complex(f64).init(upper_left_nums[0], upper_left_nums[1]);
     var lower_right = Complex(f64).init(lower_right_nums[0], lower_right_nums[1]);
 
-    var image = try ubu.image.Gray.init_alloc(allocator, dim[0], dim[1]);
+    var image = ubu.image.Gray.init_alloc(allocator, dim[0], dim[1]) catch print_usage_msg_and_exit("Ouf of memory!");
     defer image.deinit();
 
-    var f = try ubu.File.create(filename);
+    var f = ubu.File.create(filename) catch print_usage_msg_and_exit("Failed to create output file!");
     defer f.close();
 
     if (single_thread) {
-        render(image.bytes(), dim, upper_left, lower_right, 255);
+        render(image.bytes(), dim, upper_left, lower_right, max_iterations);
     } else {
-        try render_threaded(12, image.bytes(), dim, upper_left, lower_right, 255);
+        render_threaded(12, image.bytes(), dim, upper_left, lower_right, max_iterations) catch print_usage_msg_and_exit("Failed to render!");
     }
 
-    try ppm.encode(image, &f, false);
+    ppm.encode(image, &f, false) catch print_usage_msg_and_exit("Failed to output image!");
 }
