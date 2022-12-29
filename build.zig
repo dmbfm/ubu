@@ -51,6 +51,7 @@ pub fn build(b: *std.build.Builder) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&exe_tests.step);
 
+    add_example(b, opts, "scratch", "examples/scratch.zig");
     add_example(b, opts, "example-gradient-test", "examples/image/gradient_test.zig");
     add_example(b, opts, "example-image-invert", "examples/image/image_invert.zig");
     add_example(b, opts, "example-cat", "examples/cat.zig");

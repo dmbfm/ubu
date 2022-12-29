@@ -189,10 +189,10 @@ pub fn print_usage() !void {
     return ubu.eprintln("Usage: example-mandelbrot FILE SIZE UPPER_LEFT LOWER_LEFT", .{});
 }
 
-pub fn print_usage_msg_and_exit(msg: []const u8) noreturn {
-    ubu.eprintln("{s}", .{msg}) catch unreachable;
-    print_usage() catch unreachable;
-    std.os.exit(0);
+pub fn fatal(msg: []const u8) noreturn {
+    ubu.eprintln("{s}\n", .{msg}) catch {};
+    print_usage() catch {};
+    std.os.exit(1);
 }
 
 pub fn main() !void {
@@ -208,23 +208,23 @@ pub fn main() !void {
     }
 
     var filename = args[1];
-    var dim = parse_pair(usize, args[2], 'x') catch print_usage_msg_and_exit("failed to parse image dimensions!\n");
-    var upper_left_nums = parse_pair(f64, args[3], ',') catch print_usage_msg_and_exit("failed to parse upper left coords!\n");
-    var lower_right_nums = parse_pair(f64, args[4], ',') catch print_usage_msg_and_exit("failed to parse lower right coords!");
+    var dim = parse_pair(usize, args[2], 'x') catch fatal("failed to parse image dimensions!");
+    var upper_left_nums = parse_pair(f64, args[3], ',') catch fatal("failed to parse upper left coords!");
+    var lower_right_nums = parse_pair(f64, args[4], ',') catch fatal("failed to parse lower right coords!");
     var upper_left = Complex(f64).init(upper_left_nums[0], upper_left_nums[1]);
     var lower_right = Complex(f64).init(lower_right_nums[0], lower_right_nums[1]);
 
-    var image = ubu.image.Gray.init_alloc(allocator, dim[0], dim[1]) catch print_usage_msg_and_exit("Ouf of memory!");
+    var image = ubu.image.Gray.init_alloc(allocator, dim[0], dim[1]) catch fatal("Ouf of memory!");
     defer image.deinit();
 
-    var f = ubu.File.create(filename) catch print_usage_msg_and_exit("Failed to create output file!");
+    var f = ubu.File.create(filename) catch fatal("Failed to create output file!");
     defer f.close();
 
     if (single_thread) {
         render(image.bytes(), dim, upper_left, lower_right, max_iterations);
     } else {
-        render_threaded(12, image.bytes(), dim, upper_left, lower_right, max_iterations) catch print_usage_msg_and_exit("Failed to render!");
+        render_threaded(12, image.bytes(), dim, upper_left, lower_right, max_iterations) catch fatal("Failed to render!");
     }
 
-    ppm.encode(image, &f, false) catch print_usage_msg_and_exit("Failed to output image!");
+    ppm.encode(image, &f, false) catch fatal("Failed to output image!");
 }
