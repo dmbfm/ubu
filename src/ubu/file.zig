@@ -192,12 +192,34 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
 
 pub const File = BufferedFile(1024 * 4);
 
+// TODO: move these from here!!
 const stdout = std.io.getStdOut().writer();
+const stderr = std.io.getStdErr().writer();
+
 pub fn print(comptime format: []const u8, args: anytype) !void {
     return stdout.print(format, args);
 }
+
+pub fn println(comptime format: []const u8, args: anytype) !void {
+    try stdout.print(format, args);
+    try stdout.writeByte('\n');
+}
+
 pub fn print_string(data: []const u8) !void {
     return stdout.writeAll(data);
+}
+
+pub fn eprint(comptime format: []const u8, args: anytype) !void {
+    return stderr.print(format, args);
+}
+
+pub fn eprint_string(data: []const u8) !void {
+    return stderr.writeAll(data);
+}
+
+pub fn eprintln(comptime format: []const u8, args: anytype) !void {
+    try stderr.print(format, args);
+    try stderr.writeByte('\n');
 }
 
 const t = std.testing;

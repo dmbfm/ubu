@@ -12,6 +12,7 @@ pub const io = @import("ubu/io.zig");
 pub const fs = @import("ubu/fs.zig");
 pub const complex = @import("ubu/complex.zig");
 pub usingnamespace @import("ubu/file.zig");
+pub usingnamespace @import("ubu/tuple.zig");
 
 test {
     _ = @import("ubu/indexed_pool.zig");
@@ -23,4 +24,5 @@ test {
     _ = @import("ubu/io.zig");
     _ = @import("ubu/file.zig");
     _ = @import("ubu/complex.zig");
+    _ = @import("ubu/tuple.zig");
 }

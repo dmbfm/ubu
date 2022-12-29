@@ -39,7 +39,7 @@ pub fn Image(comptime ColorType: type) type {
 
         pub fn init_alloc(allocator: std.mem.Allocator, width: usize, height: usize) !Self {
             return Self{
-                .data = try allocator.alloc(color.Rgb, width * height),
+                .data = try allocator.alloc(ColorType, width * height),
                 .width = width,
                 .height = height,
                 .allocator = allocator,
@@ -60,7 +60,7 @@ pub fn Image(comptime ColorType: type) type {
             return self.data[y * self.width + x];
         }
 
-        pub fn set(self: *Rgb, x: usize, y: usize, value: ColorType) void {
+        pub fn set(self: *Self, x: usize, y: usize, value: ColorType) void {
             if (x < 0 or x >= self.width or y < 0 or y >= self.height) {
                 return;
             }

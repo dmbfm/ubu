@@ -24,6 +24,14 @@ pub fn add_example(b: *std.build.Builder, opts: BuildOptions, comptime name: []c
     run_cmd.step.dependOn(b.getInstallStep());
     const run_step = b.step(name, "Run example " ++ name);
     run_step.dependOn(&run_cmd.step);
+
+    const exe_tests = b.addTest(src);
+    exe_tests.addPackage(ubu_pkg);
+    exe_tests.setTarget(opts.target);
+    exe_tests.setBuildMode(opts.mode);
+
+    const test_step = b.step("test-" ++ name, "Run unit tests");
+    test_step.dependOn(&exe_tests.step);
 }
 
 pub fn build(b: *std.build.Builder) void {
@@ -46,4 +54,5 @@ pub fn build(b: *std.build.Builder) void {
     add_example(b, opts, "example-gradient-test", "examples/image/gradient_test.zig");
     add_example(b, opts, "example-image-invert", "examples/image/image_invert.zig");
     add_example(b, opts, "example-cat", "examples/cat.zig");
+    add_example(b, opts, "example-mandelbrot", "examples/mandelbrot.zig");
 }

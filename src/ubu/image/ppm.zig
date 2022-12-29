@@ -169,8 +169,8 @@ pub fn write_header(header: Header, writer: anytype) !void {
 }
 
 pub fn encode(img: anytype, writer: anytype, plain_text: bool) !void {
-    switch (img.pixel_format) {
-        .Rgb => {
+    switch (@TypeOf(img)) {
+        image.Rgb => {
             var header = Header{
                 .magic = if (plain_text) [_]u8{ 'P', '3' } else [_]u8{ 'P', '6' },
                 .width = img.width,
@@ -191,8 +191,29 @@ pub fn encode(img: anytype, writer: anytype, plain_text: bool) !void {
                 try writer.write_all(img.bytes());
             }
         },
-        .Gray => {},
-        .Rgba => {},
+        image.Gray => {
+            var header = Header{
+                .magic = if (plain_text) [_]u8{ 'P', '2' } else [_]u8{ 'P', '5' },
+                .width = img.width,
+                .height = img.height,
+                .max_color_value = 255,
+            };
+
+            try write_header(header, writer);
+
+            if (plain_text) {
+                for (range(img.height)) |_, y| {
+                    for (range(img.width)) |_, x| {
+                        var color = img.get(x, y).?;
+                        try writer.print("{} ", .{color});
+                    }
+                    try writer.write_all("\n");
+                }
+            } else {
+                try writer.write_all(img.bytes());
+            }
+        },
+        image.Rgba => {},
         else => return error.UnsupportedPixelFormat,
     }
 }
