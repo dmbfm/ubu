@@ -37,7 +37,7 @@ pub fn Image(comptime ColorType: type) type {
             };
         }
 
-        pub fn init_alloc(allocator: std.mem.Allocator, width: usize, height: usize) !Self {
+        pub fn initAlloc(allocator: std.mem.Allocator, width: usize, height: usize) !Self {
             return Self{
                 .data = try allocator.alloc(ColorType, width * height),
                 .width = width,

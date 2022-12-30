@@ -25,7 +25,7 @@ pub fn StaticStack(comptime T: type, comptime capacity: comptime_int) type {
             return self.items[self.len - 1];
         }
 
-        pub fn get_items(self: *Self) []T {
+        pub fn getItems(self: *Self) []T {
             return self.items[0..self.len];
         }
     };

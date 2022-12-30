@@ -5,16 +5,16 @@ pub fn Value(comptime T: type, comptime domain: []const T, comptime index_for_va
         const Self = @This();
         value: [domain.len]bool = [_]bool{false} ** domain.len,
 
-        fn fallback_index_for_value_fn(val: T) !usize {
+        fn fallbackIndexForValueFn(val: T) !usize {
             return @intCast(usize, val);
         }
 
-        fn index_for_value(val: T) !usize {
+        fn indexForValue(val: T) !usize {
             if (index_for_value_fn) |f| {
                 return f(val);
             }
 
-            return fallback_index_for_value_fn(val);
+            return fallbackIndexForValueFn(val);
         }
 
         pub fn init(values: []const T) !Self {
@@ -25,7 +25,7 @@ pub fn Value(comptime T: type, comptime domain: []const T, comptime index_for_va
             return result;
         }
 
-        pub fn init_full() Self {
+        pub fn initFull() Self {
             var result = Self{};
             for (result.value) |*v| {
                 v.* = true;
@@ -33,7 +33,7 @@ pub fn Value(comptime T: type, comptime domain: []const T, comptime index_for_va
             return result;
         }
 
-        pub fn init_single_value(value: T) !Self {
+        pub fn initSingleValue(value: T) !Self {
             var result = Self{};
             try result.set(value);
             return result;
@@ -50,15 +50,15 @@ pub fn Value(comptime T: type, comptime domain: []const T, comptime index_for_va
             return c;
         }
 
-        pub fn set_single_value(self: *Self, value: T) !void {
-            var idx = try index_for_value(value);
+        pub fn setSingleValue(self: *Self, value: T) !void {
+            var idx = try indexForValue(value);
             var i: usize = 0;
             while (i < domain.len) : (i += 1) {
                 self.value[i] = i == idx;
             }
         }
 
-        pub fn get_single_value_index(self: *Self) !usize {
+        pub fn getSingleValueIndex(self: *Self) !usize {
             if (self.len() == 1) {
                 var idx: usize = 0;
                 for (self.value) |v| {
@@ -72,7 +72,7 @@ pub fn Value(comptime T: type, comptime domain: []const T, comptime index_for_va
             return error.NotSingleValued;
         }
 
-        pub fn get_single_value(self: *Self) !T {
+        pub fn getSingleValue(self: *Self) !T {
             if (self.len() == 1) {
                 var idx: usize = 0;
                 for (self.value) |v| {
@@ -87,24 +87,24 @@ pub fn Value(comptime T: type, comptime domain: []const T, comptime index_for_va
         }
 
         pub fn set(self: *Self, value: T) !void {
-            var idx = try index_for_value(value);
+            var idx = try indexForValue(value);
             self.value[idx] = true;
         }
 
         pub fn unset(self: *Self, value: T) void {
-            var idx = index_for_value(value) catch unreachable;
+            var idx = indexForValue(value) catch unreachable;
 
             if (self.value[idx]) {
                 self.value[idx] = false;
             }
         }
 
-        pub fn has_value(self: *Self, value: T) bool {
-            var idx = index_for_value(value) catch return false;
+        pub fn hasValue(self: *Self, value: T) bool {
+            var idx = indexForValue(value) catch return false;
             return self.value[idx];
         }
 
-        pub fn collapse_random(self: *Self, random: std.rand.Random) u8 {
+        pub fn collapseRandom(self: *Self, random: std.rand.Random) u8 {
             var val = random.intRangeLessThan(usize, 0, self.len());
             var i: usize = 0;
             var value: u8 = 0;

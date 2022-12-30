@@ -1,5 +1,17 @@
 const std = @import("std");
 
+/// An object pool with generational-indices.
+///
+/// Usage example:
+///
+///   var pool = IndexedPool(u32, 128){};
+///   var handle = try pool.alloc();
+///   var ptr = try pool.get(handle);
+///   ptr.* = 10;
+///   // ... do stuff
+///   pool.free(handle);
+///
+///
 pub fn IndexedPool(comptime T: type, comptime capacity: usize) type {
     return struct {
         pool: [capacity]T = undefined,

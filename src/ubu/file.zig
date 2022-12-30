@@ -39,7 +39,7 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
             return result;
         }
 
-        pub fn from_std_file(file: std.fs.File, mode: Mode) Self {
+        pub fn fromStdFile(file: std.fs.File, mode: Mode) Self {
             var result = .{ .file = file, .mode = mode };
             return result;
         }
@@ -54,7 +54,7 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
             self.file.close();
         }
 
-        pub fn fill_buffer(self: *Self) !void {
+        pub fn fillBuffer(self: *Self) !void {
             if (self.mode != .read) {
                 return error.InvalidMode;
             }
@@ -68,7 +68,7 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
             self.cur = 0;
         }
 
-        pub fn set_backing_buffer(self: *Self, buffer: []u8) void {
+        pub fn setBackingBuffer(self: *Self, buffer: []u8) void {
             self.buffer = buffer;
         }
 
@@ -84,7 +84,7 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
             var bytes_read: usize = 0;
             while (bytes_read < out.len) {
                 if (self.cur >= self.filled_slice.len) {
-                    try self.fill_buffer();
+                    try self.fillBuffer();
                 }
 
                 var avail = self.filled_slice.len - self.cur;
@@ -102,10 +102,10 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
             return bytes_read;
         }
 
-        pub fn read_line(self: *Self, out: []u8) !usize {
+        pub fn readLine(self: *Self, out: []u8) !usize {
             var bytes_written: usize = 0;
             while (bytes_written < out.len) {
-                if (try self.read_byte()) |ch| {
+                if (try self.readByte()) |ch| {
                     if (ch == '\n') {
                         break;
                     }
@@ -119,7 +119,7 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
             return bytes_written;
         }
 
-        pub fn read_byte(self: *Self) !?u8 {
+        pub fn readByte(self: *Self) !?u8 {
             var b: [1]u8 = undefined;
             var len = try self.read(&b);
             if (len == 0) {
@@ -164,7 +164,7 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
             return bytes_written;
         }
 
-        pub fn write_byte(self: *Self, byte: u8) !void {
+        pub fn writeByte(self: *Self, byte: u8) !void {
             var b = [_]u8{byte};
             var len = try self.write(&b);
             if (len == 0) {
@@ -172,19 +172,19 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
             }
         }
 
-        pub fn write_all_unbuffered(self: *Self, data: []const u8) !void {
+        pub fn writeAllUnbuffered(self: *Self, data: []const u8) !void {
             try self.file.writeAll(data);
         }
 
-        pub fn write_all(self: *Self, data: []const u8) !void {
+        pub fn writeAll(self: *Self, data: []const u8) !void {
             _ = try self.write(data);
         }
 
         pub fn print(self: *Self, comptime format: []const u8, args: anytype) !void {
-            try std.fmt.format(self.std_writer(), format, args);
+            try std.fmt.format(self.stdWriter(), format, args);
         }
 
-        pub fn std_writer(self: *Self) std.io.Writer(*Self, Error, Self.write) {
+        pub fn stdWriter(self: *Self) std.io.Writer(*Self, Error, Self.write) {
             return .{ .context = self };
         }
     };
@@ -205,7 +205,7 @@ pub fn println(comptime format: []const u8, args: anytype) !void {
     try stdout.writeByte('\n');
 }
 
-pub fn print_string(data: []const u8) !void {
+pub fn printString(data: []const u8) !void {
     return stdout.writeAll(data);
 }
 
@@ -213,10 +213,11 @@ pub fn eprint(comptime format: []const u8, args: anytype) !void {
     return stderr.print(format, args);
 }
 
-pub fn eprint_string(data: []const u8) !void {
+pub fn eprintString(data: []const u8) !void {
     return stderr.writeAll(data);
 }
 
+/// Prints the formatted string to `stderr`.
 pub fn eprintln(comptime format: []const u8, args: anytype) !void {
     try stderr.print(format, args);
     try stderr.writeByte('\n');
@@ -237,7 +238,7 @@ test "BufferedFile read" {
 
 test "BufferedFile write" {
     var f = try BufferedFile(16).create("test_data/buffered_file_write.txt");
-    try f.write_all("hello!");
+    try f.writeAll("hello!");
     try f.print("  x = {}", .{10});
     f.close();
 
@@ -249,9 +250,9 @@ test "BufferedFile write" {
     try t.expect(eql(u8, b[0..len], "hello!  x = 10"));
 }
 
-test "BufferedFile read_line" {
+test "BufferedFile readLine" {
     var f = try BufferedFile(4).open("test_data/file.txt");
     var buf: [128]u8 = undefined;
-    var len = try f.read_line(&buf);
+    var len = try f.readLine(&buf);
     try t.expect(eql(u8, buf[0..len], "I just need some random text to test my zig library with and I can go from there."));
 }

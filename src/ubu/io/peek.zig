@@ -11,7 +11,7 @@ pub fn PeekMixin(
         // return peek_fn(self.context, buffer);
         // }
 
-        pub fn peek_byte(self: Self) ErrorType!?u8 {
+        pub fn peekByte(self: Self) ErrorType!?u8 {
             var b: [1]u8 = undefined;
             var len = try self.peek(&b);
             if (len == 1) {

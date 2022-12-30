@@ -104,11 +104,11 @@ pub fn BufferStream(comptime BufferType: type) type {
     };
 }
 
-pub fn new_buffer(buf: anytype) Buffer(non_sentinel_span(@TypeOf(buf))) {
+pub fn newBuffer(buf: anytype) Buffer(NonSentinelSpan(@TypeOf(buf))) {
     return .{ .context = .{ .buf = std.mem.span(buf) } };
 }
 
-pub fn non_sentinel_span(comptime T: type) type {
+pub fn NonSentinelSpan(comptime T: type) type {
     var ptr_info = @typeInfo(std.mem.Span(T)).Pointer;
     ptr_info.sentinel = null;
     return @Type(.{ .Pointer = ptr_info });
@@ -116,15 +116,15 @@ pub fn non_sentinel_span(comptime T: type) type {
 
 test "Buffer Stream" {
     var data: []const u8 = "aaaa bb ccccc dd e fff gggggg hhh";
-    var buf = new_buffer(data);
+    var buf = newBuffer(data);
     var s = buf.stream();
-    var b = (try s.read_byte()).?;
+    var b = (try s.readByte()).?;
     try std.testing.expect(b == 'a');
 }
 
 test "Buffer print" {
     var data: [3]u8 = undefined;
-    var buf = new_buffer(&data);
+    var buf = newBuffer(&data);
     var s = buf.stream();
     try s.print("{}", .{255});
     try std.testing.expect(std.mem.eql(u8, &data, "255"));

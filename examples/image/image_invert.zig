@@ -15,7 +15,7 @@ pub fn main() !void {
     }
 
     var filename: []const u8 = args[1];
-    var buffered = try ubu.fs.open_file_buffered(filename);
+    var buffered = try ubu.fs.openFileBuffered(filename);
     defer buffered.close();
 
     var result = try image.ppm.decode(allocator, buffered.stream());
@@ -26,7 +26,7 @@ pub fn main() !void {
         value.* = 255 - value.*;
     }
 
-    var out_file = try ubu.fs.create_file("out.ppm");
+    var out_file = try ubu.fs.createFile("out.ppm");
     defer out_file.close();
-    try image.ppm.encode(img, ubu.io.new_file_stream(out_file), false);
+    try image.ppm.encode(img, ubu.io.newFileStream(out_file), false);
 }

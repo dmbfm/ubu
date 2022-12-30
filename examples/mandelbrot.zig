@@ -21,7 +21,7 @@ const eql = std.mem.eql;
 const Tuple = ubu.Tuple;
 const Complex = ubu.complex.Complex;
 
-pub fn parse_pair(comptime T: type, string: []const u8, sep: u8) !Tuple(.{ T, T }) {
+pub fn parsePair(comptime T: type, string: []const u8, sep: u8) !Tuple(.{ T, T }) {
     var i: usize = 0;
     while (i < string.len) {
         if (string[i] == sep) {
@@ -49,19 +49,19 @@ pub fn parse_pair(comptime T: type, string: []const u8, sep: u8) !Tuple(.{ T, T 
                 try std.fmt.parseFloat(T, string[(i + 1)..]),
             };
         },
-        else => @compileError("parse_pair: invalid type."),
+        else => @compileError("parsePair: invalid type."),
     }
 }
 
-test "parse_pair" {
-    try expectError(error.PairParseError, parse_pair(u32, "", ','));
-    try expectError(error.InvalidCharacter, parse_pair(u32, "1,", ','));
-    try expectEqual(@as(Tuple(.{ u32, u32 }), .{ 1, 1 }), try parse_pair(u32, "1,1", ','));
-    try expectEqual(@as(Tuple(.{ u32, u32 }), .{ 100, 200 }), try parse_pair(u32, "100x200", 'x'));
-    try expectEqual(@as(Tuple(.{ f64, f64 }), .{ 1.2, 3.234 }), try parse_pair(f64, "1.2,3.234", ','));
+test "parsePair" {
+    try expectError(error.PairParseError, parsePair(u32, "", ','));
+    try expectError(error.InvalidCharacter, parsePair(u32, "1,", ','));
+    try expectEqual(@as(Tuple(.{ u32, u32 }), .{ 1, 1 }), try parsePair(u32, "1,1", ','));
+    try expectEqual(@as(Tuple(.{ u32, u32 }), .{ 100, 200 }), try parsePair(u32, "100x200", 'x'));
+    try expectEqual(@as(Tuple(.{ f64, f64 }), .{ 1.2, 3.234 }), try parsePair(f64, "1.2,3.234", ','));
 }
 
-pub fn get_point_for_pixel(
+pub fn getPointForPixel(
     pixel: Tuple(.{ usize, usize }),
     dim: Tuple(.{ usize, usize }),
     upper_left: Complex(f64),
@@ -77,10 +77,10 @@ pub fn get_point_for_pixel(
     };
 }
 
-test "get_point_for_pixel" {
+test "getPointForPixel" {
     try expectEqual(
         Complex(f64).init(-0.5, -0.75),
-        get_point_for_pixel(.{ 25, 175 }, .{ 100, 200 }, Complex(f64).init(-1.0, 1.0), Complex(f64).init(1.0, -1.0)),
+        getPointForPixel(.{ 25, 175 }, .{ 100, 200 }, Complex(f64).init(-1.0, 1.0), Complex(f64).init(1.0, -1.0)),
     );
 }
 
@@ -92,11 +92,11 @@ pub fn render(
     limit: usize,
 ) void {
     for (range(dim[1])) |_, row| {
-        render_row(image, row, dim, upper_left, lower_right, limit);
+        renderRow(image, row, dim, upper_left, lower_right, limit);
     }
 }
 
-pub fn render_row(
+pub fn renderRow(
     image: []u8,
     row: usize,
     dim: Tuple(.{ usize, usize }),
@@ -105,23 +105,23 @@ pub fn render_row(
     limit: usize,
 ) void {
     for (range(dim[0])) |_, col| {
-        var point = get_point_for_pixel(.{ col, row }, dim, upper_left, lower_right);
+        var point = getPointForPixel(.{ col, row }, dim, upper_left, lower_right);
         var i: usize = 0;
         var z = Complex(f64).init(0, 0);
-        while (i < limit and z.norm_sq() <= 4) {
+        while (i < limit and z.normSquared() <= 4) {
             z = z.mul(z).add(point);
             i += 1;
         }
 
-        image[row * dim[0] + col] = get_color_for_value(i, limit);
+        image[row * dim[0] + col] = getColorForValue(i, limit);
     }
 }
 
-pub fn get_color_for_value(value: usize, limit: usize) u8 {
+pub fn getColorForValue(value: usize, limit: usize) u8 {
     return 255 - @floatToInt(u8, 255.0 * @intToFloat(f64, value) / @intToFloat(f64, limit));
 }
 
-pub fn render_thread_fn(ctx: *ThreadContext) void {
+pub fn renderThreadFn(ctx: *ThreadContext) void {
     while (true) {
         ctx.mutex.lock();
         var row = ctx.current_row;
@@ -132,7 +132,7 @@ pub fn render_thread_fn(ctx: *ThreadContext) void {
             break;
         }
 
-        render_row(ctx.image, row, ctx.dim, ctx.upper_left, ctx.lower_right, ctx.limit);
+        renderRow(ctx.image, row, ctx.dim, ctx.upper_left, ctx.lower_right, ctx.limit);
     }
 }
 
@@ -146,7 +146,7 @@ const ThreadContext = struct {
     mutex: std.Thread.Mutex = .{},
 };
 
-pub fn render_threaded(
+pub fn renderThreaded(
     comptime num_threads: comptime_int,
     image: []u8,
     dim: Tuple(.{ usize, usize }),
@@ -168,7 +168,7 @@ pub fn render_threaded(
     {
         var i: usize = 0;
         while (i < num_threads) {
-            threads[i] = try std.Thread.spawn(.{}, render_thread_fn, .{&thread_context});
+            threads[i] = try std.Thread.spawn(.{}, renderThreadFn, .{&thread_context});
             i += 1;
         }
     }
@@ -185,13 +185,13 @@ pub fn render_threaded(
 const single_thread = false;
 const max_iterations = 255;
 
-pub fn print_usage() !void {
+pub fn printUsage() !void {
     return ubu.eprintln("Usage: example-mandelbrot FILE SIZE UPPER_LEFT LOWER_LEFT", .{});
 }
 
 pub fn fatal(msg: []const u8) noreturn {
     ubu.eprintln("{s}\n", .{msg}) catch {};
-    print_usage() catch {};
+    printUsage() catch {};
     std.os.exit(1);
 }
 
@@ -203,18 +203,18 @@ pub fn main() !void {
     defer allocator.free(args);
 
     if (args.len != 5) {
-        try print_usage();
+        try printUsage();
         return;
     }
 
     var filename = args[1];
-    var dim = parse_pair(usize, args[2], 'x') catch fatal("failed to parse image dimensions!");
-    var upper_left_nums = parse_pair(f64, args[3], ',') catch fatal("failed to parse upper left coords!");
-    var lower_right_nums = parse_pair(f64, args[4], ',') catch fatal("failed to parse lower right coords!");
+    var dim = parsePair(usize, args[2], 'x') catch fatal("failed to parse image dimensions!");
+    var upper_left_nums = parsePair(f64, args[3], ',') catch fatal("failed to parse upper left coords!");
+    var lower_right_nums = parsePair(f64, args[4], ',') catch fatal("failed to parse lower right coords!");
     var upper_left = Complex(f64).init(upper_left_nums[0], upper_left_nums[1]);
     var lower_right = Complex(f64).init(lower_right_nums[0], lower_right_nums[1]);
 
-    var image = ubu.image.Gray.init_alloc(allocator, dim[0], dim[1]) catch fatal("Ouf of memory!");
+    var image = ubu.image.Gray.initAlloc(allocator, dim[0], dim[1]) catch fatal("Ouf of memory!");
     defer image.deinit();
 
     var f = ubu.File.create(filename) catch fatal("Failed to create output file!");
@@ -223,7 +223,7 @@ pub fn main() !void {
     if (single_thread) {
         render(image.bytes(), dim, upper_left, lower_right, max_iterations);
     } else {
-        render_threaded(12, image.bytes(), dim, upper_left, lower_right, max_iterations) catch fatal("Failed to render!");
+        renderThreaded(12, image.bytes(), dim, upper_left, lower_right, max_iterations) catch fatal("Failed to render!");
     }
 
     ppm.encode(image, &f, false) catch fatal("Failed to output image!");

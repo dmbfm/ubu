@@ -15,15 +15,15 @@ pub fn SeekMixin(
         // return seek_fn(self.context, relative_to, offset);
         // }
 
-        pub fn seek_to_start(self: Self) ErrorType!void {
+        pub fn seekToStart(self: Self) ErrorType!void {
             _ = try self.seek(.Start, 0);
         }
 
-        pub fn seek_to_end(self: Self) ErrorType!usize {
+        pub fn seekToEnd(self: Self) ErrorType!usize {
             return try self.seek(.End, 0);
         }
 
-        pub fn step_back(self: Self) ErrorType!void {
+        pub fn stepBack(self: Self) ErrorType!void {
             _ = try self.seek(.Current, -1);
         }
     };

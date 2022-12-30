@@ -32,12 +32,12 @@ pub fn Complex(comptime T: type) type {
             };
         }
 
-        pub fn norm_sq(self: Self) T {
+        pub fn normSquared(self: Self) T {
             return self.re * self.re + self.im * self.im;
         }
 
         pub fn norm(self: Self) T {
-            return std.math.sqrt(self.norm_sq());
+            return std.math.sqrt(self.normSquared());
         }
 
         pub fn format(
@@ -64,7 +64,7 @@ fn eps(comptime T: type) T {
 
 test "Complex norm" {
     var z = Complex(f32).init(1, 3);
-    try t.expectApproxEqAbs(@as(f32, 10.0), z.norm_sq(), 0.00001);
+    try t.expectApproxEqAbs(@as(f32, 10.0), z.normSquared(), 0.00001);
     try t.expectApproxEqAbs(std.math.sqrt(@as(f32, 10)), z.norm(), 0.00001);
 }
 

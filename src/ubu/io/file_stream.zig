@@ -51,16 +51,17 @@ pub const FileStream = struct {
     pub usingnamespace io.WriterMixin(Self, Error);
 };
 
-pub fn new_file_stream(f: std.fs.File) FileStream {
+// pub fn new_file_stream(f: std.fs.File) FileStream {
+pub fn newFileStream(f: std.fs.File) FileStream {
     return FileStream.init(f);
 }
 
 test "FileStream" {
     var f = try std.fs.cwd().openFile("test_data/file.txt", .{});
     var stream = FileStream.init(f);
-    var b = (try stream.read_byte()).?;
+    var b = (try stream.readByte()).?;
     try std.testing.expect(b == 'I');
-    b = (try stream.peek_byte()).?;
+    b = (try stream.peekByte()).?;
     try std.testing.expect(b == ' ');
     var buf: [4]u8 = undefined;
     var len = try stream.peek(&buf);

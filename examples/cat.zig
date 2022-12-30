@@ -18,8 +18,8 @@ pub fn main() !void {
     defer f.close();
 
     while (true) {
-        try f.fill_buffer();
+        try f.fillBuffer();
         if (f.filled_slice.len == 0) break;
-        try ubu.print_string(f.filled_slice);
+        try ubu.printString(f.filled_slice);
     }
 }

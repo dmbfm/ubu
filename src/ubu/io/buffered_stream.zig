@@ -114,11 +114,11 @@ pub fn BufferedStream(comptime ReaderStream: type, comptime buffer_len: comptime
     };
 }
 
-pub fn new_buffered_stream_container(stream: anytype, comptime buffer_len: comptime_int) BufferedStreamContainer(@TypeOf(stream), buffer_len) {
+pub fn newBufferedStreamContainer(stream: anytype, comptime buffer_len: comptime_int) BufferedStreamContainer(@TypeOf(stream), buffer_len) {
     return BufferedStreamContainer(@TypeOf(stream), buffer_len).init(stream);
 }
 
-pub fn new_buffered_stream_container_from_file(f: std.fs.File, comptime buffer_len: comptime_int) BufferedStreamContainer(io.FileStream, buffer_len) {
+pub fn nenewBufferedStreamContainerFromFile(f: std.fs.File, comptime buffer_len: comptime_int) BufferedStreamContainer(io.FileStream, buffer_len) {
     return BufferedStreamContainer(io.FileStream, buffer_len).init_from_file(f);
 }
 
@@ -126,13 +126,13 @@ test "Buffered Stream" {
     var f = try std.fs.cwd().openFile("test_data/file.txt", .{});
     // var s = io.FileStream.init(f);
     // var bsc = new_buffered_stream_container(s, 128);
-    var bsc = new_buffered_stream_container_from_file(f, 128);
+    var bsc = nenewBufferedStreamContainerFromFile(f, 128);
     var stream = bsc.stream();
-    var ch = (try stream.read_byte()).?;
+    var ch = (try stream.readByte()).?;
     try std.testing.expect(ch == 'I');
-    ch = (try stream.peek_byte()).?;
+    ch = (try stream.peekByte()).?;
     try std.testing.expect(ch == ' ');
-    try stream.skip_byte();
+    try stream.skipByte();
     var b: [4]u8 = undefined;
     _ = try stream.read(&b);
     try std.testing.expect(std.mem.eql(u8, &b, "just"));
