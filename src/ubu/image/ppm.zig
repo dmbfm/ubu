@@ -25,13 +25,16 @@ pub fn parseHeader(reader: anytype) !Header {
     var state: u8 = 0;
 
     while (true) {
-        var ch = if (try reader.readByte()) |val| val else break;
+        var ch = reader.readByte() catch |err| switch (err) {
+            error.EndOfStream => break,
+            else => return err,
+        };
 
         std.log.info("ch = {}", .{ch});
         switch (ch) {
             '#' => {
                 while (true) {
-                    var _ch = (try reader.readByte()).?;
+                    var _ch = try reader.readByte();
                     if (_ch == '\n') {
                         break;
                     }
@@ -44,7 +47,7 @@ pub fn parseHeader(reader: anytype) !Header {
                 var c: usize = 1;
                 buf[0] = ch;
                 while (true) {
-                    var ch2 = (try reader.readByte()).?;
+                    var ch2 = try reader.readByte();
                     if (std.ascii.isDigit(ch2)) {
                         buf[c] = ch2;
                         c += 1;
@@ -89,7 +92,7 @@ pub fn decodeP3(allocator: std.mem.Allocator, header: Header, peek_reader: anyty
     var y: usize = 0;
     var color: [3]u8 = [3]u8{ 0, 0, 0 };
     var idx: usize = 0;
-    while (try r.peekByte()) |ch| {
+    while (r.peekByte()) |ch| {
         switch (ch) {
             ' ', '\n' => {
                 try r.skipByte();
@@ -98,15 +101,15 @@ pub fn decodeP3(allocator: std.mem.Allocator, header: Header, peek_reader: anyty
                 var buf: [16]u8 = undefined;
                 var cur: usize = 0;
                 while (true) {
-                    if (try r.readByte()) |_ch| {
+                    if (r.readByte()) |_ch| {
                         if (std.ascii.isDigit(_ch)) {
                             buf[cur] = _ch;
                             cur += 1;
                             continue;
                         }
+                    } else |_| {
+                        break;
                     }
-
-                    break;
                 }
 
                 color[idx] = try std.fmt.parseInt(u8, buf[0..cur], 10);
@@ -125,7 +128,7 @@ pub fn decodeP3(allocator: std.mem.Allocator, header: Header, peek_reader: anyty
             },
             else => return error.DecodeError,
         }
-    }
+    } else |_| {}
 
     return image.DecodeResult{ .rgb = img };
 }
@@ -134,7 +137,7 @@ fn decodeP6(allocator: std.mem.Allocator, header: Header, reader: anytype) !imag
     var img = try image.Rgb.initAlloc(allocator, header.width, header.height);
     var bytes = img.bytes();
 
-    var sep = (try reader.readByte()).?;
+    var sep = try reader.readByte();
     switch (sep) {
         '\n', ' ' => {},
         else => return error.DecodeError,
@@ -230,7 +233,7 @@ test "parse_header" {
             \\1 1 0   1 1 1   0 0 0
         ;
 
-        var buf = io.newBuffer(p3);
+        var buf = io.newBuffer(&p3);
         var s = buf.stream();
         var header = try parseHeader(&s);
         try expect(std.mem.eql(u8, &header.magic, "P3"));
@@ -281,7 +284,7 @@ test "decode p3" {
 
 test "decode p6" {
     const p6 = [_]u8{ 80, 54, 10, 53, 32, 53, 10, 50, 53, 53, 10, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 };
-    var buf = io.newBuffer(&p6);
+    var buf = io.newBuffer(p6);
     var s = buf.stream();
     var result = try decode(std.testing.allocator_instance.allocator(), s);
     defer result.rgb.deinit();
@@ -323,7 +326,7 @@ test "encode p3" {
 
     var img = try image.Rgb.init(&pixels, 2, 2);
     try encode(img, s, true);
-    try std.testing.expect(std.mem.eql(u8, buffer_data[0..s.ctx.cur], expected_result));
+    try std.testing.expect(std.mem.eql(u8, buffer_data[0..buffer.cur], expected_result));
 }
 
 test "encode p6" {}

@@ -1,4 +1,5 @@
 const std = @import("std");
+const io = @import("../io.zig");
 
 pub fn BufferedFile(comptime buffer_len: comptime_int) type {
     return struct {
@@ -105,25 +106,27 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
         pub fn readLine(self: *Self, out: []u8) !usize {
             var bytes_written: usize = 0;
             while (bytes_written < out.len) {
-                if (try self.readByte()) |ch| {
-                    if (ch == '\n') {
-                        break;
-                    }
-                    out[bytes_written] = ch;
-                    bytes_written += 1;
-                } else {
+                var ch = self.readByte() catch |err| switch (err) {
+                    error.EndOfStream => break,
+                    else => return err,
+                };
+
+                if (ch == '\n') {
                     break;
                 }
+
+                out[bytes_written] = ch;
+                bytes_written += 1;
             }
 
             return bytes_written;
         }
 
-        pub fn readByte(self: *Self) !?u8 {
+        pub fn readByte(self: *Self) !u8 {
             var b: [1]u8 = undefined;
             var len = try self.read(&b);
             if (len == 0) {
-                return null;
+                return error.EndOfStream;
             }
             return b[0];
         }
@@ -187,41 +190,28 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
         pub fn stdWriter(self: *Self) std.io.Writer(*Self, Error, Self.write) {
             return .{ .context = self };
         }
+
+        pub fn stdReader(self: *Self) std.io.Reader(*Self, Error, Self.read) {
+            return .{ .context = self };
+        }
+
+        pub fn stream(self: *Self) io.Stream {
+            return switch (self.mode) {
+                .read => io.Stream.init(self, .{
+                    .read = Self.read,
+                    // .peek = Self.peek,
+                    // .seek = Self.seek,
+                }),
+                .write => io.Stream.init(self, .{
+                    .write = Self.write,
+                    // .seek = Self.seek,
+                }),
+            };
+        }
     };
 }
 
 pub const File = BufferedFile(1024 * 4);
-
-// TODO: move these from here!!
-const stdout = std.io.getStdOut().writer();
-const stderr = std.io.getStdErr().writer();
-
-pub fn print(comptime format: []const u8, args: anytype) !void {
-    return stdout.print(format, args);
-}
-
-pub fn println(comptime format: []const u8, args: anytype) !void {
-    try stdout.print(format, args);
-    try stdout.writeByte('\n');
-}
-
-pub fn printString(data: []const u8) !void {
-    return stdout.writeAll(data);
-}
-
-pub fn eprint(comptime format: []const u8, args: anytype) !void {
-    return stderr.print(format, args);
-}
-
-pub fn eprintString(data: []const u8) !void {
-    return stderr.writeAll(data);
-}
-
-/// Prints the formatted string to `stderr`.
-pub fn eprintln(comptime format: []const u8, args: anytype) !void {
-    try stderr.print(format, args);
-    try stderr.writeByte('\n');
-}
 
 const t = std.testing;
 const eql = std.mem.eql;

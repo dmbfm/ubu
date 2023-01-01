@@ -1,5 +1,6 @@
 const std = @import("std");
 const ubu = @import("ubu");
+const File = ubu.io.File;
 
 pub fn main() !void {
     const allocator = ubu.allocators.GlobalArena.allocator();
@@ -14,7 +15,7 @@ pub fn main() !void {
 
     var filename = args[1];
 
-    var f = try ubu.File.open(filename);
+    var f = try File.open(filename);
     defer f.close();
 
     while (true) {

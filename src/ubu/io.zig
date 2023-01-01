@@ -1,18 +1,16 @@
 const std = @import("std");
 
-pub usingnamespace @import("io/reader.zig");
-pub usingnamespace @import("io/seek.zig");
-pub usingnamespace @import("io/peek.zig");
-pub usingnamespace @import("io/file_stream.zig");
-pub usingnamespace @import("io/buffer_stream.zig");
-pub usingnamespace @import("io/buffered_stream.zig");
-pub usingnamespace @import("io/writer.zig");
+pub usingnamespace @import("io/stream.zig");
+pub usingnamespace @import("io/reader_mixin.zig");
+pub usingnamespace @import("io/writer_mixin.zig");
+pub usingnamespace @import("io/seek_mixin.zig");
+pub usingnamespace @import("io/skip_mixin.zig");
+pub usingnamespace @import("io/peek_mixin.zig");
+pub usingnamespace @import("io/file.zig");
+pub usingnamespace @import("io/buffer.zig");
+pub usingnamespace @import("io/growable_buffer.zig");
+pub usingnamespace @import("io/static_buffer.zig");
 
 test {
-    _ = @import("io/reader.zig");
-    _ = @import("io/seek.zig");
-    _ = @import("io/peek.zig");
-    _ = @import("io/buffer_stream.zig");
-    _ = @import("io/buffered_stream.zig");
-    _ = @import("io/file_stream.zig");
+    std.testing.refAllDecls(@This());
 }
