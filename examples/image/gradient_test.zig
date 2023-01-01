@@ -2,6 +2,7 @@ const std = @import("std");
 const ubu = @import("ubu");
 const image = ubu.image;
 const color = ubu.image.color;
+const File = ubu.io.File;
 
 const width = 1000;
 const height = 1000;
@@ -16,6 +17,7 @@ pub fn main() !void {
         }
     }
 
-    var f = try ubu.fs.createFile("gradient.ppm");
-    try image.ppm.encode(img, ubu.io.newFileStream(f), false);
+    var f = try File.create("gradient.ppm");
+    defer f.close();
+    try image.ppm.encode(img, &f, true);
 }

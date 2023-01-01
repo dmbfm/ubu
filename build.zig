@@ -21,7 +21,11 @@ pub fn add_example(b: *std.build.Builder, opts: BuildOptions, comptime name: []c
     if (b.args) |args| {
         run_cmd.addArgs(args);
     }
-    run_cmd.step.dependOn(b.getInstallStep());
+
+    const install = b.step("build-" ++ name, "Build " ++ name);
+    install.dependOn(&b.addInstallArtifact(exe).step);
+
+    run_cmd.step.dependOn(install);
     const run_step = b.step(name, "Run example " ++ name);
     run_step.dependOn(&run_cmd.step);
 

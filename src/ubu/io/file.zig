@@ -47,9 +47,7 @@ pub fn BufferedFile(comptime buffer_len: comptime_int) type {
 
         pub fn close(self: *Self) void {
             if (self.mode == .write) {
-                // TODO: Is there a better solution? I would not like to change
-                // the signature of `close` to `!void`...
-                self.flush() catch unreachable;
+                self.flush() catch {};
             }
 
             self.file.close();

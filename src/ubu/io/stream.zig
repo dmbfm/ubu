@@ -25,6 +25,7 @@ const VTable = struct {
     skip: ?*const fn (*anyopaque, usize) StreamError!void = null,
 };
 
+// pub fn Stream(comptime ErrorType: type) type {
 pub const Stream = struct {
     ptr: *anyopaque,
     vtable: VTable,

@@ -24,9 +24,4 @@ pub fn readFile(allocator: std.mem.Allocator, path: []const u8) ![]u8 {
     return f.readToEndAlloc(allocator, 1024 * 1024 * 1024);
 }
 
-pub fn openFileBuffered(path: []const u8) !ubu.io.BufferedStreamContainer(ubu.io.FileStream, 1024) {
-    var f: File = try openFile(path);
-    return ubu.io.nenewBufferedStreamContainerFromFile(f, 1024);
-}
-
 test "fs" {}

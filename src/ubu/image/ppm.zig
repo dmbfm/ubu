@@ -107,9 +107,9 @@ pub fn decodeP3(allocator: std.mem.Allocator, header: Header, peek_reader: anyty
                             cur += 1;
                             continue;
                         }
-                    } else |_| {
-                        break;
-                    }
+                    } else |_| {}
+
+                    break;
                 }
 
                 color[idx] = try std.fmt.parseInt(u8, buf[0..cur], 10);
@@ -222,6 +222,10 @@ pub fn encode(img: anytype, writer: anytype, plain_text: bool) !void {
 
 const expect = std.testing.expect;
 
+fn f(data: []const u8) void {
+    std.log.err("f({s})", .{data});
+}
+
 test "parse_header" {
     {
         const p3 =
@@ -233,7 +237,7 @@ test "parse_header" {
             \\1 1 0   1 1 1   0 0 0
         ;
 
-        var buf = io.newBuffer(&p3);
+        var buf = io.newBuffer(p3);
         var s = buf.stream();
         var header = try parseHeader(&s);
         try expect(std.mem.eql(u8, &header.magic, "P3"));
@@ -244,7 +248,7 @@ test "parse_header" {
 
     {
         const p6 = [_]u8{ 80, 54, 10, 53, 32, 53, 10, 50, 53, 53, 10, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 };
-        var buf = io.newBuffer(&p6);
+        var buf = io.newBuffer(p6);
         var s = buf.stream();
         var header = try parseHeader(&s);
         try expect(std.mem.eql(u8, &header.magic, "P6"));
@@ -311,7 +315,7 @@ test "encode p3" {
         .{ .r = 255, .g = 255, .b = 255 },
     };
 
-    var expected_result =
+    var expected_result: []const u8 =
         \\P3
         \\2 2
         \\255

@@ -3,6 +3,7 @@ const ubu = @import("ubu");
 const stdout = std.io.getStdOut().writer();
 const image = ubu.image;
 const color = ubu.image.color;
+const File = ubu.io.File;
 
 pub fn main() !void {
     var allocator = std.heap.page_allocator;
@@ -15,10 +16,10 @@ pub fn main() !void {
     }
 
     var filename: []const u8 = args[1];
-    var buffered = try ubu.fs.openFileBuffered(filename);
-    defer buffered.close();
+    var file = try File.open(filename);
+    defer file.close();
 
-    var result = try image.ppm.decode(allocator, buffered.stream());
+    var result = try image.ppm.decode(allocator, file.stream());
     var img = result.rgb;
     defer img.deinit();
 
@@ -26,7 +27,7 @@ pub fn main() !void {
         value.* = 255 - value.*;
     }
 
-    var out_file = try ubu.fs.createFile("out.ppm");
+    var out_file = try File.create("out.ppm");
     defer out_file.close();
-    try image.ppm.encode(img, ubu.io.newFileStream(out_file), false);
+    try image.ppm.encode(img, out_file.stream(), false);
 }
