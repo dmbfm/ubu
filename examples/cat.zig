@@ -1,6 +1,6 @@
 const std = @import("std");
 const ubu = @import("ubu");
-const File = ubu.io.File;
+const File = ubu.fs.File;
 
 pub fn main() !void {
     const allocator = ubu.allocators.GlobalArena.allocator();
@@ -20,7 +20,7 @@ pub fn main() !void {
 
     while (true) {
         try f.fillBuffer();
-        if (f.filled_slice.len == 0) break;
-        try ubu.printString(f.filled_slice);
+        if (f.filled_slice.?.len == 0) break;
+        try ubu.printString(f.filled_slice.?);
     }
 }

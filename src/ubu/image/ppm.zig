@@ -17,157 +17,221 @@ const Header = struct {
     max_color_value: usize = 0,
 };
 
-pub fn parseHeader(reader: anytype) !Header {
-    var header = Header{};
+pub fn decodeFilePath(allocator: std.mem.Allocator, path: []const u8) !image.DecodeResult {
+    var f = try std.fs.cwd().openFile(path, .{});
+    defer f.close();
+    return decodeFile(allocator, f);
+}
 
-    _ = try reader.read(&header.magic);
+pub fn decodeFile(allocator: std.mem.Allocator, file: std.fs.File) !image.DecodeResult {
+    var buffer = try file.readToEndAlloc(allocator, std.math.maxInt(usize));
+    return decodeBuffer(allocator, buffer);
+}
 
-    var state: u8 = 0;
+pub fn decodeBuffer(allocator: std.mem.Allocator, data: []const u8) !image.DecodeResult {
+    var byteReader = io.ByteReader.init(data);
+    var header = try decodeHeader(&byteReader);
+    switch (header.magic[1]) {
+        '1' => {
+            @panic("Not implemented");
+        },
+        '2' => {
+            return decodeBodyPlainText(image.Gray, allocator, header, &byteReader);
+        },
+        '3' => {
+            return decodeBodyPlainText(image.Rgb, allocator, header, &byteReader);
+        },
+        '4' => {
+            @panic("Not implemented");
+        },
+        '5' => {
+            return decodeBodyBinary(image.Gray, allocator, header, &byteReader);
+        },
+        '6' => {
+            return decodeBodyBinary(image.Rgb, allocator, header, &byteReader);
+        },
+        else => unreachable,
+    }
+}
+
+fn decodeBodyBinary(
+    comptime T: type,
+    allocator: std.mem.Allocator,
+    header: Header,
+    br: *io.ByteReader,
+) !image.DecodeResult {
+    var img = switch (T) {
+        image.Gray => try image.Gray.initAlloc(allocator, header.width, header.height),
+        image.Rgb => try image.Rgb.initAlloc(allocator, header.width, header.height),
+        else => @compileError("Invalid type!"),
+    };
+
+    var ch = try br.readByte();
+    if (ch != '\n') {
+        return error.DecodeError;
+    }
+
+    var bytes = img.bytes();
+    var src = br.buf[br.cur..];
+
+    if (bytes.len != src.len) {
+        return error.DecodeError;
+    }
+
+    @memcpy(bytes.ptr, src.ptr, src.len);
+
+    return switch (T) {
+        image.Gray => image.DecodeResult{ .gray = img },
+        image.Rgb => image.DecodeResult{ .rgb = img },
+        else => @compileError("Invalid type!"),
+    };
+}
+
+fn decodeBodyPlainText(
+    comptime T: type,
+    allocator: std.mem.Allocator,
+    header: Header,
+    br: *io.ByteReader,
+) !image.DecodeResult {
+    var img = switch (T) {
+        image.Gray => try image.Gray.initAlloc(allocator, header.width, header.height),
+        image.Rgb => try image.Rgb.initAlloc(allocator, header.width, header.height),
+        else => @compileError("Invalid type!"),
+    };
+
+    var bytes = img.bytes();
+    var count: usize = 0;
 
     while (true) {
-        var ch = reader.readByte() catch |err| switch (err) {
+        var ch = br.peekByte() catch |err| switch (err) {
             error.EndOfStream => break,
             else => return err,
         };
 
-        std.log.info("ch = {}", .{ch});
         switch (ch) {
             '#' => {
-                while (true) {
-                    var _ch = try reader.readByte();
-                    if (_ch == '\n') {
-                        break;
-                    }
-                }
+                try br.skipLine();
             },
-            ' ' => {},
-            '\n' => {},
-            '0'...'9' => {
-                var buf: [64]u8 = undefined;
-                var c: usize = 1;
-                buf[0] = ch;
-                while (true) {
-                    var ch2 = try reader.readByte();
-                    if (std.ascii.isDigit(ch2)) {
-                        buf[c] = ch2;
-                        c += 1;
-                    } else {
-                        try reader.stepBack();
-                        break;
-                    }
-                }
-
-                var num = try std.fmt.parseInt(usize, buf[0..c], 10);
-
-                if (state == 0) {
-                    header.width = num;
-                    state = 1;
-                } else if (state == 1) {
-                    header.height = num;
-                    state = 2;
-                } else if (state == 2) {
-                    header.max_color_value = num;
-                    if (!std.math.isPowerOfTwo(header.max_color_value + 1)) {
-                        return Error.InvalidHeader;
-                    }
-                    return header;
-                } else {
-                    return Error.InvalidHeader;
-                }
+            '\n' => {
+                try br.skipByte();
             },
-            else => {
-                return Error.InvalidHeader;
-            },
-        }
-    }
-
-    return Error.InvalidHeader;
-}
-
-pub fn decodeP3(allocator: std.mem.Allocator, header: Header, peek_reader: anytype) !image.DecodeResult {
-    var r = &peek_reader;
-    var img = try image.Rgb.initAlloc(allocator, header.width, header.height);
-
-    var x: usize = 0;
-    var y: usize = 0;
-    var color: [3]u8 = [3]u8{ 0, 0, 0 };
-    var idx: usize = 0;
-    while (r.peekByte()) |ch| {
-        switch (ch) {
-            ' ', '\n' => {
-                try r.skipByte();
+            ' ' => {
+                try br.skipByte();
             },
             '0'...'9' => {
                 var buf: [16]u8 = undefined;
-                var cur: usize = 0;
-                while (true) {
-                    if (r.readByte()) |_ch| {
-                        if (std.ascii.isDigit(_ch)) {
-                            buf[cur] = _ch;
-                            cur += 1;
-                            continue;
-                        }
-                    } else |_| {}
-
-                    break;
+                var len = try br.readWhileDigit(&buf);
+                var num = try std.fmt.parseInt(u8, buf[0..len], 10);
+                if (count >= bytes.len) {
+                    return error.DecodeError;
                 }
+                bytes[count] = num;
+                count += 1;
+            },
+            else => {
+                return error.DecodeError;
+            },
+        }
+    }
 
-                color[idx] = try std.fmt.parseInt(u8, buf[0..cur], 10);
-                idx += 1;
+    return switch (T) {
+        image.Gray => image.DecodeResult{ .gray = img },
+        image.Rgb => image.DecodeResult{ .rgb = img },
+        else => @compileError("Invalid type!"),
+    };
+}
 
-                if (idx == 3) {
-                    img.set(x, y, image.color.Rgb{ .r = color[0], .g = color[1], .b = color[2] });
-                    idx = 0;
-                    x += 1;
-                }
+fn decodeHeaderBuffer(data: []const u8) !Header {
+    var byteReader = io.ByteReader.init(data);
+    return try decodeHeader(&byteReader);
+}
 
-                if (x >= img.width) {
-                    x = 0;
-                    y += 1;
+fn decodeHeader(br: *io.ByteReader) !Header {
+    var header = Header{};
+
+    _ = try br.read(&header.magic);
+
+    if (header.magic[0] != 'P') {
+        return error.InvalidHeader;
+    }
+
+    if (std.mem.indexOf(u8, "123456", header.magic[1..]) == null) {
+        return error.InvalidHeader;
+    }
+
+    var state: u8 = 0;
+
+    while (true) {
+        var ch = try br.peekByte();
+
+        switch (ch) {
+            '#' => {
+                _ = try br.skipUntilAfterChar('\n');
+            },
+            ' ', '\n' => {
+                try br.skipByte();
+            },
+            '0'...'9' => {
+                var buf: [16]u8 = undefined;
+                var len = try br.readWhileDigit(&buf);
+                var num = try std.fmt.parseInt(usize, buf[0..len], 10);
+
+                switch (state) {
+                    0 => {
+                        header.width = num;
+                        state = 1;
+                    },
+                    1 => {
+                        header.height = num;
+                        state = 2;
+                    },
+                    2 => {
+                        header.max_color_value = num;
+                        state = 3;
+                        break;
+                    },
+                    else => unreachable,
                 }
             },
-            else => return error.DecodeError,
+            else => return error.InvalidHeader,
         }
-    } else |_| {}
-
-    return image.DecodeResult{ .rgb = img };
-}
-
-fn decodeP6(allocator: std.mem.Allocator, header: Header, reader: anytype) !image.DecodeResult {
-    var img = try image.Rgb.initAlloc(allocator, header.width, header.height);
-    var bytes = img.bytes();
-
-    var sep = try reader.readByte();
-    switch (sep) {
-        '\n', ' ' => {},
-        else => return error.DecodeError,
     }
 
-    _ = try reader.read(bytes);
-
-    return .{ .rgb = img };
-}
-
-pub fn decodeBuffer(allocator: std.mem.Allocator, data: []const u8) !image.DecodeResult {
-    var r = ubu.io.newBuffer(data);
-    return decode(allocator, r.stream());
-}
-
-pub fn decode(allocator: std.mem.Allocator, reader: anytype) !image.DecodeResult {
-    var header = try parseHeader(reader);
-
-    switch (header.magic[1]) {
-        '3' => return decodeP3(allocator, header, reader),
-        '6' => return decodeP6(allocator, header, reader),
-        else => return Error.InvalidHeader,
+    if (state != 3) {
+        return error.InvalidHeader;
     }
+
+    return header;
 }
 
-pub fn writeHeader(header: Header, writer: anytype) !void {
+fn writeHeader(header: Header, writer: anytype) !void {
     _ = try writer.write(&header.magic);
     try writer.writeByte('\n');
     try writer.print("{} {}\n", .{ header.width, header.height });
     try writer.print("{}\n", .{header.max_color_value});
+}
+
+pub fn encodeToFile(img: anytype, file: std.fs.File, plain_text: bool) !void {
+    var bw = std.io.bufferedWriter(file.writer());
+    try encode(img, bw.writer(), plain_text);
+    try bw.flush();
+}
+
+pub fn encodeToFilePath(img: anytype, path: []const u8, plain_text: bool) !void {
+    var file = try std.fs.cwd().createFile(path, .{});
+    defer file.close();
+    return encodeToFile(img, file, plain_text);
+}
+
+pub fn encodeToBuffer(img: anytype, buffer: []u8, plain_text: bool) !void {
+    var bw = io.ByteWriter.init(buffer);
+    return encode(img, bw.writer(), plain_text);
+}
+
+pub fn encodeToBufferAlloc(img: anytype, allocator: std.mem.Allocator, plain_text: bool) ![]u8 {
+    _ = plain_text;
+    _ = allocator;
+    _ = img;
 }
 
 pub fn encode(img: anytype, writer: anytype, plain_text: bool) !void {
@@ -222,10 +286,6 @@ pub fn encode(img: anytype, writer: anytype, plain_text: bool) !void {
 
 const expect = std.testing.expect;
 
-fn f(data: []const u8) void {
-    std.log.err("f({s})", .{data});
-}
-
 test "parse_header" {
     {
         const p3 =
@@ -237,9 +297,7 @@ test "parse_header" {
             \\1 1 0   1 1 1   0 0 0
         ;
 
-        var buf = io.newBuffer(p3);
-        var s = buf.stream();
-        var header = try parseHeader(&s);
+        var header = try decodeHeaderBuffer(p3);
         try expect(std.mem.eql(u8, &header.magic, "P3"));
         try expect(header.width == 3);
         try expect(header.height == 2);
@@ -248,9 +306,7 @@ test "parse_header" {
 
     {
         const p6 = [_]u8{ 80, 54, 10, 53, 32, 53, 10, 50, 53, 53, 10, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 };
-        var buf = io.newBuffer(p6);
-        var s = buf.stream();
-        var header = try parseHeader(&s);
+        var header = try decodeHeaderBuffer(&p6);
         try expect(std.mem.eql(u8, &header.magic, "P6"));
         try expect(header.width == 5);
         try expect(header.height == 5);
@@ -268,9 +324,7 @@ test "decode p3" {
         \\1 1 0   1 1 1   0 0 0
     ;
 
-    var buffer = io.newBuffer(p3);
-    var stream = buffer.stream();
-    var result = try decode(std.testing.allocator_instance.allocator(), stream);
+    var result = try decodeBuffer(std.testing.allocator, p3);
     defer result.rgb.deinit();
 
     try expect(result.rgb.get(0, 0).?.r == 1);
@@ -288,9 +342,7 @@ test "decode p3" {
 
 test "decode p6" {
     const p6 = [_]u8{ 80, 54, 10, 53, 32, 53, 10, 50, 53, 53, 10, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 };
-    var buf = io.newBuffer(p6);
-    var s = buf.stream();
-    var result = try decode(std.testing.allocator_instance.allocator(), s);
+    var result = try decodeBuffer(std.testing.allocator, &p6);
     defer result.rgb.deinit();
     var img = result.rgb;
 
@@ -324,13 +376,10 @@ test "encode p3" {
         \\
     ;
 
-    var buffer_data: [256]u8 = undefined;
-    var buffer = io.newBuffer(&buffer_data);
-    var s = buffer.stream();
-
+    var buffer = io.StaticByteWriter(256){};
     var img = try image.Rgb.init(&pixels, 2, 2);
-    try encode(img, s, true);
-    try std.testing.expect(std.mem.eql(u8, buffer_data[0..buffer.cur], expected_result));
+    try encode(img, buffer.writer(), true);
+    try std.testing.expect(std.mem.eql(u8, buffer.buf[0..buffer.cur], expected_result));
 }
 
 test "encode p6" {}

@@ -1,4 +1,5 @@
 const std = @import("std");
+
 pub const Rgb = extern struct {
     r: u8,
     g: u8,

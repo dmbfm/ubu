@@ -16,10 +16,8 @@ pub fn main() !void {
     }
 
     var filename: []const u8 = args[1];
-    var file = try File.open(filename);
-    defer file.close();
 
-    var result = try image.ppm.decode(allocator, file.stream());
+    var result = try image.ppm.decodeFilePath(allocator, filename);
     var img = result.rgb;
     defer img.deinit();
 
@@ -27,7 +25,5 @@ pub fn main() !void {
         value.* = 255 - value.*;
     }
 
-    var out_file = try File.create("out.ppm");
-    defer out_file.close();
-    try image.ppm.encode(img, out_file.stream(), false);
+    try image.ppm.encodeToFilePath(img, "out.ppm", false);
 }

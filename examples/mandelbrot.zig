@@ -217,7 +217,7 @@ pub fn main() !void {
     var image = ubu.image.Gray.initAlloc(allocator, dim[0], dim[1]) catch fatal("Ouf of memory!");
     defer image.deinit();
 
-    var f = ubu.File.create(filename) catch fatal("Failed to create output file!");
+    var f = ubu.fs.File.create(filename) catch fatal("Failed to create output file!");
     defer f.close();
 
     if (single_thread) {
@@ -226,5 +226,5 @@ pub fn main() !void {
         renderThreaded(12, image.bytes(), dim, upper_left, lower_right, max_iterations) catch fatal("Failed to render!");
     }
 
-    ppm.encode(image, &f, false) catch fatal("Failed to output image!");
+    ppm.encode(image, f.writer(), false) catch fatal("Failed to output image!");
 }
