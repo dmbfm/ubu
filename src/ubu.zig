@@ -1,19 +1,19 @@
 const std = @import("std");
 
-pub const string = @import("ubu/string.zig");
-pub const allocators = @import("ubu/allocators.zig");
-pub const constraint = @import("ubu/constraint.zig");
-pub const image = @import("ubu/image.zig");
-pub const fs = @import("ubu/fs.zig");
-pub const io = @import("ubu/io.zig");
-pub const complex = @import("ubu/complex.zig");
+pub const string = @import("string.zig");
+pub const allocators = @import("allocators.zig");
+pub const constraint = @import("constraint.zig");
+pub const image = @import("image.zig");
+pub const fs = @import("fs.zig");
+pub const io = @import("io.zig");
+pub const complex = @import("complex.zig");
 
-pub usingnamespace @import("ubu/indexed_pool.zig");
-pub usingnamespace @import("ubu/range.zig");
-pub usingnamespace @import("ubu/static_queue.zig");
-pub usingnamespace @import("ubu/static_stack.zig");
-pub usingnamespace @import("ubu/tuple.zig");
-pub usingnamespace @import("ubu/print.zig");
+pub usingnamespace @import("indexed_pool.zig");
+pub usingnamespace @import("range.zig");
+pub usingnamespace @import("static_queue.zig");
+pub usingnamespace @import("static_stack.zig");
+pub usingnamespace @import("tuple.zig");
+pub usingnamespace @import("print.zig");
 
 test {
     std.testing.refAllDecls(@This());

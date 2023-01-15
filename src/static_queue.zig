@@ -1,5 +1,5 @@
 const std = @import("std");
-const ubu = @import("../ubu.zig");
+const ubu = @import("ubu.zig");
 
 pub fn StaticQueue(comptime T: type, comptime capacity: comptime_int) type {
     return struct {
