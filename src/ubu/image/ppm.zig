@@ -4,6 +4,10 @@ const io = @import("../io.zig");
 const range = @import("../range.zig").range;
 const ubu = @import("../../ubu.zig");
 
+pub const DecodeOptions = struct {
+    scale_to_max_value: bool = true,
+};
+
 const Error = error{
     InvalidHeader,
     DecodeError,
@@ -15,20 +19,29 @@ const Header = struct {
     width: usize = 0,
     height: usize = 0,
     max_color_value: usize = 0,
+
+    pub fn colorValue(self: Header, val: u8) u8 {
+        if (self.max_color_value == 255) {
+            return val;
+        } else {
+            return @floatToInt(u8, 255.0 * @intToFloat(f64, val) / @intToFloat(f64, self.max_color_value));
+        }
+    }
 };
 
-pub fn decodeFilePath(allocator: std.mem.Allocator, path: []const u8) !image.DecodeResult {
+pub fn decodeFilePath(allocator: std.mem.Allocator, path: []const u8, options: DecodeOptions) !image.DecodeResult {
     var f = try std.fs.cwd().openFile(path, .{});
     defer f.close();
-    return decodeFile(allocator, f);
+    return decodeFile(allocator, f, options);
 }
 
-pub fn decodeFile(allocator: std.mem.Allocator, file: std.fs.File) !image.DecodeResult {
+pub fn decodeFile(allocator: std.mem.Allocator, file: std.fs.File, options: DecodeOptions) !image.DecodeResult {
     var buffer = try file.readToEndAlloc(allocator, std.math.maxInt(usize));
-    return decodeBuffer(allocator, buffer);
+    return decodeBuffer(allocator, buffer, options);
 }
 
-pub fn decodeBuffer(allocator: std.mem.Allocator, data: []const u8) !image.DecodeResult {
+pub fn decodeBuffer(allocator: std.mem.Allocator, data: []const u8, options: DecodeOptions) !image.DecodeResult {
+    // _ = options;
     var byteReader = io.ByteReader.init(data);
     var header = try decodeHeader(&byteReader);
     switch (header.magic[1]) {
@@ -36,19 +49,19 @@ pub fn decodeBuffer(allocator: std.mem.Allocator, data: []const u8) !image.Decod
             @panic("Not implemented");
         },
         '2' => {
-            return decodeBodyPlainText(image.Gray, allocator, header, &byteReader);
+            return decodeBodyPlainText(image.Gray, allocator, header, &byteReader, options);
         },
         '3' => {
-            return decodeBodyPlainText(image.Rgb, allocator, header, &byteReader);
+            return decodeBodyPlainText(image.Rgb, allocator, header, &byteReader, options);
         },
         '4' => {
             @panic("Not implemented");
         },
         '5' => {
-            return decodeBodyBinary(image.Gray, allocator, header, &byteReader);
+            return decodeBodyBinary(image.Gray, allocator, header, &byteReader, options);
         },
         '6' => {
-            return decodeBodyBinary(image.Rgb, allocator, header, &byteReader);
+            return decodeBodyBinary(image.Rgb, allocator, header, &byteReader, options);
         },
         else => unreachable,
     }
@@ -59,6 +72,7 @@ fn decodeBodyBinary(
     allocator: std.mem.Allocator,
     header: Header,
     br: *io.ByteReader,
+    options: DecodeOptions,
 ) !image.DecodeResult {
     var img = switch (T) {
         image.Gray => try image.Gray.initAlloc(allocator, header.width, header.height),
@@ -73,6 +87,12 @@ fn decodeBodyBinary(
 
     var bytes = img.bytes();
     var src = br.buf[br.cur..];
+
+    if (header.max_color_value != 255 and options.scale_to_max_value) {
+        for (bytes) |*b| {
+            b.* = header.colorValue(b.*);
+        }
+    }
 
     if (bytes.len != src.len) {
         return error.DecodeError;
@@ -92,6 +112,7 @@ fn decodeBodyPlainText(
     allocator: std.mem.Allocator,
     header: Header,
     br: *io.ByteReader,
+    options: DecodeOptions,
 ) !image.DecodeResult {
     var img = switch (T) {
         image.Gray => try image.Gray.initAlloc(allocator, header.width, header.height),
@@ -125,7 +146,8 @@ fn decodeBodyPlainText(
                 if (count >= bytes.len) {
                     return error.DecodeError;
                 }
-                bytes[count] = num;
+
+                bytes[count] = if (options.scale_to_max_value) header.colorValue(num) else num;
                 count += 1;
             },
             else => {
@@ -324,25 +346,43 @@ test "decode p3" {
         \\1 1 0   1 1 1   0 0 0
     ;
 
-    var result = try decodeBuffer(std.testing.allocator, p3);
-    defer result.rgb.deinit();
+    {
+        var result = try decodeBuffer(std.testing.allocator, p3, .{});
+        defer result.rgb.deinit();
 
-    try expect(result.rgb.get(0, 0).?.r == 1);
-    try expect(result.rgb.get(0, 0).?.g == 0);
-    try expect(result.rgb.get(0, 0).?.b == 0);
+        try expect(result.rgb.get(0, 0).?.r == 255);
+        try expect(result.rgb.get(0, 0).?.g == 0);
+        try expect(result.rgb.get(0, 0).?.b == 0);
 
-    try expect(result.rgb.get(1, 0).?.r == 0);
-    try expect(result.rgb.get(1, 0).?.g == 1);
-    try expect(result.rgb.get(1, 0).?.b == 0);
+        try expect(result.rgb.get(1, 0).?.r == 0);
+        try expect(result.rgb.get(1, 0).?.g == 255);
+        try expect(result.rgb.get(1, 0).?.b == 0);
 
-    try expect(result.rgb.get(1, 1).?.r == 1);
-    try expect(result.rgb.get(1, 1).?.g == 1);
-    try expect(result.rgb.get(1, 1).?.b == 1);
+        try expect(result.rgb.get(1, 1).?.r == 255);
+        try expect(result.rgb.get(1, 1).?.g == 255);
+        try expect(result.rgb.get(1, 1).?.b == 255);
+    }
+    {
+        var result = try decodeBuffer(std.testing.allocator, p3, .{ .scale_to_max_value = false });
+        defer result.rgb.deinit();
+
+        try expect(result.rgb.get(0, 0).?.r == 1);
+        try expect(result.rgb.get(0, 0).?.g == 0);
+        try expect(result.rgb.get(0, 0).?.b == 0);
+
+        try expect(result.rgb.get(1, 0).?.r == 0);
+        try expect(result.rgb.get(1, 0).?.g == 1);
+        try expect(result.rgb.get(1, 0).?.b == 0);
+
+        try expect(result.rgb.get(1, 1).?.r == 1);
+        try expect(result.rgb.get(1, 1).?.g == 1);
+        try expect(result.rgb.get(1, 1).?.b == 1);
+    }
 }
 
 test "decode p6" {
     const p6 = [_]u8{ 80, 54, 10, 53, 32, 53, 10, 50, 53, 53, 10, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 14, 12, 12, 14, 12, 12, 14, 12, 12, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 };
-    var result = try decodeBuffer(std.testing.allocator, &p6);
+    var result = try decodeBuffer(std.testing.allocator, &p6, .{});
     defer result.rgb.deinit();
     var img = result.rgb;
 

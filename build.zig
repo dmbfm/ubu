@@ -10,7 +10,7 @@ const ubu_pkg = std.build.Pkg{
     .source = .{ .path = "src/ubu.zig" },
 };
 
-pub fn add_example(b: *std.build.Builder, opts: BuildOptions, comptime name: []const u8, comptime src: []const u8) void {
+pub fn addExample(b: *std.build.Builder, opts: BuildOptions, comptime name: []const u8, comptime src: []const u8) *std.build.LibExeObjStep {
     const exe = b.addExecutable(name, src);
     exe.setTarget(opts.target);
     exe.setBuildMode(opts.mode);
@@ -36,6 +36,8 @@ pub fn add_example(b: *std.build.Builder, opts: BuildOptions, comptime name: []c
 
     const test_step = b.step("test-" ++ name, "Run unit tests");
     test_step.dependOn(&exe_tests.step);
+
+    return exe;
 }
 
 pub fn build(b: *std.build.Builder) void {
@@ -55,9 +57,12 @@ pub fn build(b: *std.build.Builder) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&exe_tests.step);
 
-    add_example(b, opts, "scratch", "examples/scratch.zig");
-    add_example(b, opts, "example-gradient-test", "examples/image/gradient_test.zig");
-    add_example(b, opts, "example-image-invert", "examples/image/image_invert.zig");
-    add_example(b, opts, "example-cat", "examples/cat.zig");
-    add_example(b, opts, "example-mandelbrot", "examples/mandelbrot.zig");
+    var scratch = addExample(b, opts, "scratch", "examples/scratch.zig");
+    scratch.linkLibC();
+
+    _ = addExample(b, opts, "example-gradient-test", "examples/image/gradient_test.zig");
+    _ = addExample(b, opts, "example-image-invert", "examples/image/image_invert.zig");
+    _ = addExample(b, opts, "example-cat", "examples/cat.zig");
+    _ = addExample(b, opts, "example-mandelbrot", "examples/mandelbrot.zig");
+    _ = addExample(b, opts, "example-wfc-texture", "examples/image/wfc-texture.zig");
 }
